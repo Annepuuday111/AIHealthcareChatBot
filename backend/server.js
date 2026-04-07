@@ -53,6 +53,16 @@ const User = mongoose.model('User', userSchema);
 const Appointment = mongoose.model('Appointment', appointmentSchema);
 const Prescription = mongoose.model('Prescription', prescriptionSchema);
 
+const notificationSchema = new mongoose.Schema({
+  patientEmail: String,
+  message: String,
+  type: { type: String, enum: ['info', 'success', 'warning', 'error'], default: 'info' },
+  icon: String,
+  read: { type: Boolean, default: false },
+  date: { type: Date, default: Date.now }
+});
+const Notification = mongoose.model('Notification', notificationSchema);
+
 // ─── API Routes ────────────────────────────────────────
 
 // 1. Register
@@ -147,7 +157,27 @@ app.post('/api/prescriptions', async (req, res) => {
   }
 });
 
-// 6. Chatbot
+// 6. Notifications
+app.get('/api/notifications/:email', async (req, res) => {
+  try {
+    const notifications = await Notification.find({ patientEmail: req.params.email }).sort({ date: -1 }).limit(30);
+    res.json(notifications);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notifications', async (req, res) => {
+  try {
+    const n = new Notification(req.body);
+    await n.save();
+    res.status(201).json(n);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 7. Chatbot
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, scenario, userData } = req.body;
@@ -331,5 +361,5 @@ Use clear formatting with headers and bullet points. Be professional, empathetic
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 AIHealthChatBot Server running on http://localhost:${PORT}`);
+  console.log(`🚀 AIHealthcareChatBot Server running on http://localhost:${PORT}`);
 });

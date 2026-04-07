@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">AIHealthChatBot</string>
-    <string name="title_activity_main">AIHealthChatBot</string>
+    <string name="app_name">AIHealthcareChatBot</string>
+    <string name="title_activity_main">AIHealthcareChatBot</string>
     <string name="package_name">com.aihealth.app</string>
     <string name="custom_url_scheme">com.aihealth.app</string>
 </resources>

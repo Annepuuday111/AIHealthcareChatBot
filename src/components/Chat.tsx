@@ -55,7 +55,7 @@ const Chat: React.FC<ChatProps> = ({ scenario }) => {
     {
       id: '1',
       type: 'bot',
-      content: `Welcome to AIHealthChatBot. I am your healthcare assistant. You are currently in the ${scenario} view. How can I help you today?`
+      content: `Welcome to AIHealthcareChatBot. I am your healthcare assistant. You are currently in the ${scenario} view. How can I help you today?`
     }
   ]);
   const [input, setInput] = useState('');

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Starting AIHealthChatBot Android Build Process..."
+echo "🚀 Starting AIHealthcareChatBot Android Build Process..."
 
 # Step 1: Ensure Web Assets are Built
 echo "📦 Building the web application..."

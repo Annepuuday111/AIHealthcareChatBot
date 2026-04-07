@@ -188,7 +188,7 @@ function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false)
     if (isMedia) return `📋 **Document Analysed.**\n\nI reviewed the uploaded document and detected medical context. However, I couldn't map it to a specific condition. Please ensure the document is clear or describe the issue in text.`;
 
     if (scenario === 'health_queries') {
-      return `🩺 **AIHealthChatBot — Health Suggestion**\n\nI have reviewed your concern about **"${text.length > 50 ? text.substring(0, 50) + '...' : text}"**. Based on this clinical query, here are my initial suggestions:\n\n✅ **Actionable Recommendations:**\n1. Monitor for any red-flag symptoms like sudden pain, high fever, or dizziness\n2. Maintain a balanced diet and stay adequately hydrated\n3. Rest is critical for recovery; aim for 7–8 hours of quality sleep\n4. For a definitive clinical plan, please **upload your medical reports** for my verification\n\n⚠️ **Guidance:** This is an automated suggestion for primary care. Please consult our on-duty doctors by **booking an appointment** for a professional physical examination.`;
+      return `🩺 **AIHealthcareChatBot — Health Suggestion**\n\nI have reviewed your concern about **"${text.length > 50 ? text.substring(0, 50) + '...' : text}"**. Based on this clinical query, here are my initial suggestions:\n\n✅ **Actionable Recommendations:**\n1. Monitor for any red-flag symptoms like sudden pain, high fever, or dizziness\n2. Maintain a balanced diet and stay adequately hydrated\n3. Rest is critical for recovery; aim for 7–8 hours of quality sleep\n4. For a definitive clinical plan, please **upload your medical reports** for my verification\n\n⚠️ **Guidance:** This is an automated suggestion for primary care. Please consult our on-duty doctors by **booking an appointment** for a professional physical examination.`;
     }
 
     return `📋 **Healthcare Analysis System**\n\nI reviewed your query but could not detect specific medical keywords. Here's how I can help:\n\n1. Type symptoms for a diagnostic review\n2. Ask health questions (e.g., "how to manage fever")\n3. Upload medical reports for clinical analysis\n4. Switch to a specialized mode using the selector`;
@@ -238,7 +238,7 @@ function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false)
   }
 
   // ─ Default ─
-  return `Hello! I'm **AIHealthChatBot** 👋\n\nI'm your intelligent healthcare assistant. Please select one of the specialised modes above or type your health question.\n\nYou can also:\n• 📎 **Upload a medical report** or prescription for analysis\n• 🎤 Use **voice input** to speak your symptoms\n• 📊 Ask for **"data insights"** for visual analytics`;
+  return `Hello! I'm **AIHealthcareChatBot** 👋\n\nI'm your intelligent healthcare assistant. Please select one of the specialised modes above or type your health question.\n\nYou can also:\n• 📎 **Upload a medical report** or prescription for analysis\n• 🎤 Use **voice input** to speak your symptoms\n• 📊 Ask for **"data insights"** for visual analytics`;
 }
 
 function getBotResponse(
@@ -957,7 +957,7 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
           role: selectedRole 
         });
         
-        alert("Clinical Record Success: Your account has been created in AIHealthChatBot database.");
+        alert("Clinical Record Success: Your account has been created in AIHealthcareChatBot database.");
         setIsRegistering(false);
         setEmail(''); setPassword(''); setName('');
       } else {
@@ -983,7 +983,7 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
             <div className="logo-pulse-box">
               <div className="logo-pulse">🩺</div>
             </div>
-            <h1>AIHealthChatBot</h1>
+            <h1>AIHealthcareChatBot</h1>
             <p>Premium Healthcare Ecosystem</p>
           </div>
           <div className="role-stack">
@@ -1437,11 +1437,24 @@ export default function App() {
 
           const presRes = await axios.get(`${API_URL}/prescriptions/${currentUser.email}`);
           setPrescriptions(presRes.data.map((p: any) => ({ ...p, id: p.id || p._id })));
+
+          // Fetch Persistent Notifications
+          const notifRes = await axios.get(`${API_URL}/notifications/${currentUser.email}`);
+          setNotificationHistory(notifRes.data.map((n: any) => ({
+            id: n._id,
+            message: n.message,
+            type: n.type,
+            icon: n.icon || '🔔',
+            date: n.date
+          })));
         } catch (err) {
           console.error("Error fetching data from MongoDB:", err);
         }
       };
+      
       fetchData();
+      const pollTimer = setInterval(fetchData, 30000); // Poll every 30s
+      return () => clearInterval(pollTimer);
     }
   }, [currentUser]);
 
@@ -1460,6 +1473,7 @@ export default function App() {
 
   const updateAppointmentStatus = async (id: string, status: UserAppointment['status']) => {
     try {
+      const targetApp = appointments.find(a => a.id === id || a._id === id);
       const res = await axios.patch(`${API_URL}/appointments/${id}`, { status });
       const updatedApp = { ...res.data, id: res.data.id || res.data._id };
       
@@ -1468,6 +1482,16 @@ export default function App() {
         const targetId = (id || '').toString();
         return aId === targetId ? updatedApp : a;
       }));
+
+      // Create persistent notification for patient
+      if (targetApp) {
+        await axios.post(`${API_URL}/notifications`, {
+          patientEmail: targetApp.patientEmail,
+          message: `Your appointment with Dr. ${targetApp.doctorName} is now ${status}.`,
+          type: status === 'completed' ? 'success' : 'info',
+          icon: '📅'
+        });
+      }
       
       addToast(`Appointment status updated to ${status}`, 'success', '📅');
     } catch (err: any) {
@@ -1482,14 +1506,23 @@ export default function App() {
           ? appointments.find(a => a.id === appointmentId || a._id === appointmentId)
           : appointments.find(a => a.patientName === pres.patientName && a.status !== 'completed');
           
+        const ptEmail = appRef?.patientEmail || 'patient@example.com';
         const payload = {
           ...pres,
-          patientEmail: appRef?.patientEmail || 'patient@example.com'
+          patientEmail: ptEmail
         };
 
         const res = await axios.post(`${API_URL}/prescriptions`, payload);
         const savedPres = { ...res.data, id: res.data.id || res.data._id };
         setPrescriptions(prev => [savedPres, ...prev]);
+
+        // Persistent notification for patient
+        await axios.post(`${API_URL}/notifications`, {
+          patientEmail: ptEmail,
+          message: `Dr. ${pres.doctorName} suggested a new medication: ${pres.medicineName}`,
+          type: 'success',
+          icon: '💊'
+        });
 
         // Automatically complete the appointment if one exists
         if (appRef) {
@@ -1499,9 +1532,9 @@ export default function App() {
           }
         }
         
-        addToast(`Prescription saved & Appointment completed`, 'success', '💊');
+        addToast(`Prescription saved & Notification sent`, 'success', '💊');
     } catch (err) {
-      console.error("Failed to save prescription:", err);
+        console.error("Failed to save prescription:", err);
     }
   };
 
@@ -1548,7 +1581,7 @@ export default function App() {
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <span className="brand-icon">⚕️</span>
-          <span className="brand-name">AIHealthChatBot</span>
+          <span className="brand-name">AIHealthcareChatBot</span>
         </div>
         <nav className="sidebar-nav">
           <p className="nav-group-label">NAVIGATION</p>
