@@ -291,18 +291,19 @@ html, body, #root {
   opacity: 0.6; pointer-events: none;
 }
 
-.login-hero {
+.login-hero-centered {
   position: relative;
   margin-bottom: 4rem;
+  text-align: center;
 }
 .logo-pulse {
-  font-size: 3.5rem;
-  margin-bottom: 1.5rem;
-  display: inline-block;
+  font-size: 4rem;
+  margin-bottom: 2rem;
+  display: block;
   animation: float 3s ease-in-out infinite;
 }
-.login-hero h1 { font-size: 3rem; font-weight: 800; color: #1e293b; letter-spacing: -0.02em; }
-.login-hero p { color: #64748B; font-weight: 600; font-size: 1.1rem; margin-top: 0.75rem; }
+.login-hero-centered h1 { font-size: 3rem; font-weight: 800; color: #1e293b; letter-spacing: -0.02em; }
+.login-hero-centered p { color: #64748B; font-weight: 600; font-size: 1.1rem; margin-top: 0.75rem; }
 
 .role-stack {
   position: relative;

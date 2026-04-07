@@ -692,8 +692,8 @@ const LoginPage: React.FC<{ onLogin: (role: 'patient' | 'doctor') => void }> = (
       <div className="login-dual-panel">
         {/* Left Side: Role Selector */}
         <div className="login-left">
-          <div className="login-hero">
-            <div className="logo-pulse">⚕️</div>
+          <div className="login-hero-centered">
+            <div className="logo-pulse">🩺</div>
             <h1>MediSync AI</h1>
             <p>Premium Healthcare Ecosystem</p>
           </div>
