@@ -656,25 +656,40 @@ const Chat: React.FC<{
       {/* Real-time Notifications - Handled at App root now */}
 
       {messages.length === 0 && (
-        <div className="welcome-section" style={{ padding: '2rem', textAlign: 'center' }}>
-          <div className="scenario-chips" style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-            {SCENARIO_CHIPS.map(chip => (
-              <button
-                key={chip.id}
-                className="chip interactive-btn"
-                style={{ padding: '0.75rem 1.25rem', borderRadius: '1rem', background: 'white', border: '1.5px solid #E2E8F0', cursor: 'pointer' }}
-                onClick={() => handleScenarioClick(chip.id)}
-              >
-                {chip.icon} {chip.label}
-              </button>
-            ))}
+        <div className="welcome-empty-state">
+          <div className="welcome-hero">
+            <div className="hero-ico-box">🩺</div>
+            <h2>Hello! I'm your AI Healthcare Assistant</h2>
+            <p>How can I help you manage your health today?</p>
           </div>
-          <p style={{ color: '#64748B', fontSize: '0.95rem' }}>Select a topic above or type your health question below to begin.</p>
+          
+          <div className="scenario-chips-grid">
+            <button className="chip-btn" onClick={() => handleScenarioClick('health_queries')}>
+              <span className="chip-ico">❓</span>
+              <div className="chip-labs"><strong>General Queries</strong><span>Ask about medications or conditions</span></div>
+            </button>
+            
+            <button className="chip-btn" onClick={() => handleScenarioClick('symptoms')}>
+              <span className="chip-ico">🩺</span>
+              <div className="chip-labs"><strong>Symptom Analysis</strong><span>Describe what you are feeling</span></div>
+            </button>
+            
+            <button className="chip-btn" onClick={() => handleScenarioClick('appointments')}>
+              <span className="chip-ico">📅</span>
+              <div className="chip-labs"><strong>Book Appointment</strong><span>Find and schedule a doctor</span></div>
+            </button>
+            
+            <button className="chip-btn upload" onClick={() => fileInputRef.current?.click()}>
+              <span className="chip-ico">📎</span>
+              <div className="chip-labs"><strong>Upload Report</strong><span>Analyze lab tests or prescriptions</span></div>
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="messages-scroll">
-        {messages.map(msg => (
+      {messages.length > 0 && (
+        <div className="messages-scroll">
+          {messages.map(msg => (
           <div key={msg.id} className={`msg-row ${msg.role}`}>
             <div className="msg-avatar">{msg.role === 'bot' ? '🩺' : '👤'}</div>
             <div className="msg-content">
@@ -740,8 +755,9 @@ const Chat: React.FC<{
         )}
         <div ref={bottomRef} />
       </div>
+    )}
 
-      {/* Active context bar */}
+    {/* Active context bar */}
       {scenario !== 'none' && scenario !== 'login' && (
         <div className="active-mode-bar">
           <div className="fixed-context-label">
