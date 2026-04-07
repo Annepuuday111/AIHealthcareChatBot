@@ -87,9 +87,39 @@ const MOCK_DOCTORS: Doctor[] = [
 // INITIAL_PRESCRIPTIONS and INITIAL_APPOINTMENTS removed as they are no longer needed.
 
 // ─── Mock chart data ──────────────────────────────────────
-const CHART_BP: ChartData = { title: 'Systolic Blood Pressure (mmHg)', type: 'line', data: [] };
-const CHART_ADHERENCE: ChartData = { title: 'Medication Adherence %', type: 'bar', data: [] };
-const CHART_VISITS: ChartData = { title: 'Hospital Visits vs Emergencies', type: 'line', data: [] };
+const CHART_BP: ChartData = { 
+  title: 'Systolic Blood Pressure (mmHg)', 
+  type: 'line', 
+  data: [
+    { name: 'Mon', value: 125 },
+    { name: 'Tue', value: 132 },
+    { name: 'Wed', value: 128 },
+    { name: 'Thu', value: 135 },
+    { name: 'Fri', value: 130 },
+    { name: 'Sat', value: 142 },
+    { name: 'Sun', value: 138 },
+  ] 
+};
+const CHART_ADHERENCE: ChartData = { 
+  title: 'Medication Adherence %', 
+  type: 'bar', 
+  data: [
+    { name: 'Week 1', value: 85 },
+    { name: 'Week 2', value: 92 },
+    { name: 'Week 3', value: 78 },
+    { name: 'Week 4', value: 95 },
+  ] 
+};
+const CHART_VISITS: ChartData = { 
+  title: 'Checkups vs Emergencies', 
+  type: 'line', 
+  data: [
+    { name: 'Jan', value: 2, secondary: 0 },
+    { name: 'Feb', value: 1, secondary: 1 },
+    { name: 'Mar', value: 3, secondary: 0 },
+    { name: 'Apr', value: 2, secondary: 0 },
+  ] 
+};
 
 // ─── Keyword-based AI response engine ────────────────────
 function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false): string {
@@ -431,7 +461,7 @@ const Chat: React.FC<{
 
     // ── Handle local mock features (Charts, Appointments, Medication tools) ──
     const isMockFeature = 
-      (/\bshow\b.*(bp|blood.?pressure|systolic|adherence|medication|visit)/.test(t) || /\bchart\b|\bgraph\b|\bdata insight/.test(t)) ||
+      (/\bshow\b.*(bp|blood.?pressure|systolic|adherence|medication|visit|stats|trends)/.test(t) || /\bchart\b|\bgraph\b|\bdata insight/.test(t)) ||
       (scenario === 'medication' && /remind|alert|alarm|notification|refill|stock|interaction|safe|combine|side effect|list|current/.test(t)) ||
       (scenario === 'appointments' && /book|schedule|appointment/.test(t));
       
