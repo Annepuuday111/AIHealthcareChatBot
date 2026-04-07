@@ -363,7 +363,14 @@ html, body, #root {
 }
 
 .auth-container h2 { font-size: 2.75rem; font-weight: 800; color: #1E293B; margin-bottom: 0.75rem; letter-spacing: -0.02em; }
-.auth-subtitle { color: #64748B; margin-bottom: 3.5rem; font-size: 1.1rem; }
+.auth-subtitle.locked { color: #D97706; font-weight: 700; background: #FFFBEB; padding: 0.5rem 1rem; border-radius: 8px; display: inline-block; }
+
+.form-locked {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(0.5);
+  transition: all 0.3s ease;
+}
 
 .auth-form {
   display: flex;

@@ -727,26 +727,46 @@ const LoginPage: React.FC<{ onLogin: (role: 'patient' | 'doctor') => void }> = (
         <div className="login-right">
           <div className="auth-container">
             <h2>{isRegistering ? 'Create Account' : 'Welcome Back'}</h2>
-            <p className="auth-subtitle">
+            <p className={`auth-subtitle ${!selectedRole ? 'locked' : ''}`}>
               {selectedRole ? 
                 `Enter your ${selectedRole} credentials below` : 
-                'Select a role on the left to get started'}
+                '🔒 Locked - Select a role on the left to start'}
             </p>
 
-            <form className="auth-form" onSubmit={handleAuth}>
+            <form className={`auth-form ${!selectedRole ? 'form-locked' : ''}`} onSubmit={handleAuth}>
               {isRegistering && (
                 <div className="input-group">
                   <label>Full Name</label>
-                  <input placeholder="John Doe" value={name} onChange={e => setName(e.target.value)} required />
+                  <input 
+                    placeholder="John Doe" 
+                    value={name} 
+                    onChange={e => setName(e.target.value)} 
+                    required 
+                    disabled={!selectedRole}
+                  />
                 </div>
               )}
               <div className="input-group">
                 <label>Email Address</label>
-                <input type="email" placeholder="user@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
+                <input 
+                  type="email" 
+                  placeholder="user@example.com" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  required 
+                  disabled={!selectedRole}
+                />
               </div>
               <div className="input-group">
                 <label>Password</label>
-                <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+                <input 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  required 
+                  disabled={!selectedRole}
+                />
               </div>
               <button type="submit" disabled={!selectedRole} className="auth-submit-btn">
                 {isRegistering ? 'Register' : 'Login'}
@@ -756,9 +776,11 @@ const LoginPage: React.FC<{ onLogin: (role: 'patient' | 'doctor') => void }> = (
             <div className="auth-toggle">
               {isRegistering ? (
                 <p>Already have an account? <button onClick={() => setIsRegistering(false)}>Login now</button></p>
-              ) : (
+              ) : selectedRole === 'patient' ? (
                 <p>Don't have an account? <button onClick={() => setIsRegistering(true)}>Register for free</button></p>
-              )}
+              ) : selectedRole === 'doctor' ? (
+                <p className="auth-note">Clinical staff can only login with hospital credentials.</p>
+              ) : null}
             </div>
           </div>
         </div>
