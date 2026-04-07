@@ -174,13 +174,14 @@ html, body, #root {
   flex-direction: column;
   overflow: hidden;
   background: #EEF2FF;
-  min-height: 100%; 
+  height: 100%;
+  position: relative;
 }
 
 .messages-scroll {
-  flex: 1 1 auto;
+  flex: 1;
   overflow-y: auto;
-  padding: 1.5rem 1.5rem 1rem;
+  padding: 1.5rem 1.5rem 6.5rem; /* Large bottom padding for the fixed bar */
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -200,11 +201,13 @@ html, body, #root {
   padding: 1rem 1.5rem;
   background: #fff;
   border-top: 1px solid #E2E8F0;
-  flex-shrink: 0;
-  box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
-  position: relative; 
-  margin-top: auto; /* Push to the very bottom of the flex container */
-  z-index: 10;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+  position: absolute; /* Lock to the base of chat-page */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  width: 100%;
 }
 
 /* ─── MESSAGE ROWS ────────────────────────────────────── */
