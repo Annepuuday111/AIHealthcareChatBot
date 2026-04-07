@@ -23,7 +23,7 @@ interface Prescription {
 }
 
 // ─── Types ────────────────────────────────────────────────
-type Scenario = 'none' | 'records' | 'symptoms' | 'appointments' | 'medication' | 'dashboard' | 'doctorView' | 'login' | 'health_queries';
+type Scenario = 'none' | 'records' | 'symptoms' | 'appointments' | 'medication' | 'dashboard' | 'doctorView' | 'login' | 'health_queries' | 'notifications';
 
 interface UserAccount {
   name: string;
@@ -420,9 +420,10 @@ const Chat: React.FC<{
   addAppointment: (app: UserAppointment) => void,
   currentUser: UserAccount | null,
   appointments: UserAppointment[],
-  prescriptions: Prescription[]
+  prescriptions: Prescription[],
+  addToast: (msg: string, type?: Toast['type'], icon?: string) => void
 }> = ({
-  scenario, setScenario, addAppointment, currentUser, appointments, prescriptions
+  scenario, setScenario, addAppointment, currentUser, appointments, prescriptions, addToast
 }) => {
   const WELCOME: Message = {
     id: 'welcome',
@@ -438,16 +439,7 @@ const Chat: React.FC<{
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
-
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const addToast = (message: string, type: Toast['type'] = 'info', icon?: string) => {
-    const id = Date.now().toString();
-    setToasts(prev => [...prev, { id, message, type, icon }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 5000);
-  };
-
+  
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
@@ -665,19 +657,8 @@ const Chat: React.FC<{
   };
 
   return (
-    <div className="chat-page">
-      {/* Real-time Notifications */}
-      <div className="toast-container">
-        {toasts.map(t => (
-          <div key={t.id} className={`toast toast-${t.type}`}>
-            <span className="toast-icon">{t.icon || '🔔'}</span>
-            <div className="toast-content">{t.message}</div>
-            <button className="toast-close" onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}>✕</button>
-          </div>
-        ))}
-      </div>
-
-      <div className="messages-scroll">
+    <div className="app-container-inner">
+      <div className="chat-page">
         {messages.map(msg => (
           <div key={msg.id} className={`msg-row ${msg.role}`}>
             <div className="msg-avatar">{msg.role === 'bot' ? '🩺' : '👤'}</div>
@@ -832,6 +813,7 @@ const NAV_ITEMS = [
   { id: 'symptoms' as Scenario, icon: '🩺', label: 'Symptom Analysis' },
   { id: 'appointments' as Scenario, icon: '📅', label: 'Appointments' },
   { id: 'medication' as Scenario, icon: '💊', label: 'Medications' },
+  { id: 'notifications' as Scenario, icon: '🔔', label: 'Notifications' },
   { id: 'dashboard' as Scenario, icon: '📊', label: 'Insights Dashboard' },
 ];
 
@@ -1223,6 +1205,19 @@ export default function App() {
   const [scenario, setScenario] = useState<Scenario>('login');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [notificationHistory, setNotificationHistory] = useState<Toast[]>([]);
+  
+  const addToast = (message: string, type: Toast['type'] = 'info', icon?: string) => {
+    const id = Date.now().toString();
+    const newToast = { id, message, type, icon };
+    setToasts(prev => [...prev, newToast]);
+    setNotificationHistory(prev => [newToast, ...prev].slice(0, 50)); // Keep last 50
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 5000);
+  };
+
   // Restore session on refresh
   useEffect(() => {
     const savedSession = localStorage.getItem('mediSync_session');
@@ -1310,6 +1305,17 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* Global Toast Notifications */}
+      <div className="toast-container">
+        {toasts.map(t => (
+          <div key={t.id} className={`toast toast-${t.type}`}>
+            <span className="toast-icon">{t.icon || '🔔'}</span>
+            <div className="toast-content">{t.message}</div>
+            <button className="toast-close" onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}>✕</button>
+          </div>
+        ))}
+      </div>
+
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <span className="brand-icon">⚕️</span>
@@ -1373,7 +1379,31 @@ export default function App() {
         </header>
 
         <main className="content-scroll">
-          {view === 'doctor' && scenario === 'none' ? (
+          {scenario === 'notifications' ? (
+            <div className="doctor-panel">
+              <div className="doc-header">
+                <h2>Notifications Center</h2>
+                <p>Stay updated with your latest health alerts and system activity.</p>
+              </div>
+              <div className="app-list">
+                {notificationHistory.length === 0 ? (
+                   <div className="empty-state">No recent notifications.</div>
+                ) : (
+                  notificationHistory.map(n => (
+                    <div key={n.id} className="app-card" style={{ borderLeft: `4px solid ${n.type === 'success' ? '#10B981' : n.type === 'warning' ? '#F59E0B' : '#3B82F6'}` }}>
+                       <div className="app-main">
+                         <div className="p-ava" style={{ background: '#f1f5f9' }}>{n.icon || '🔔'}</div>
+                         <div className="p-det">
+                            <strong>{n.message}</strong>
+                            <span>{new Date(parseInt(n.id)).toLocaleTimeString()} • {new Date(parseInt(n.id)).toLocaleDateString()}</span>
+                         </div>
+                       </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : view === 'doctor' && scenario === 'none' ? (
             <DoctorOverallDashboard 
               appointments={appointments.filter(a => a.doctorName === currentUser?.name)} 
             />
@@ -1415,6 +1445,7 @@ export default function App() {
               currentUser={currentUser}
               appointments={appointments}
               prescriptions={prescriptions}
+              addToast={addToast}
             />
           )}
         </main>

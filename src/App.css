@@ -83,6 +83,16 @@ html, body, #root {
 .nav-btn:hover { background: rgba(255,255,255,0.10); color: #fff; }
 .nav-btn.active { background: rgba(255,255,255,0.18); color: #fff; font-weight: 600; }
 .nav-icon { font-size: 1.05rem; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto;
+  background: #EF4444;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 99px;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
 
 .sidebar-footer {
   padding: 0.875rem;
