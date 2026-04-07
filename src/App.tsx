@@ -47,6 +47,7 @@ interface UserAppointment {
   time: string;
   date: string;
   status: 'confirmed' | 'pending' | 'completed';
+  specialization?: string;
 }
 
 interface ChartData {
@@ -573,7 +574,8 @@ const Chat: React.FC<{
         patientName: currentUser?.name || 'Unknown Patient',
         date: appDate,
         time: appTime,
-        status: 'pending'
+        status: 'pending',
+        specialization: doctor.specialization
       };
       addAppointment(newApp);
       
@@ -1119,78 +1121,69 @@ const DoctorDashboard: React.FC<{
 };
 
 // ─── Patient Records (Detail View) ────────────────────────
-const PatientRecords: React.FC<{ appointments: UserAppointment[] }> = ({ appointments }) => (
-  <div className="records-detail">
-    <div className="records-header">
-      <h2>My Medical Records & History</h2>
-      <p>Comprehensive health data and clinical insights</p>
-    </div>
+const PatientRecords: React.FC<{ appointments: UserAppointment[] }> = ({ appointments }) => {
+  const uniqueIssues = Array.from(new Set(appointments.map(a => a.specialization).filter(Boolean)));
 
-    <div className="records-grid">
-      {/* Active Health Issues Card */}
-      <div className="record-card issues">
-        <div className="card-header-flex">
-          <h3>Active Health Issues</h3>
-          <span className="status-badge health">Stable</span>
-        </div>
-        <div className="issues-list">
-          <div className="issue-item">
-            <span className="issue-ico">🩹</span>
-            <div className="issue-text">
-              <strong>Hypertension</strong>
-              <span>Diagnosis: Oct 2023 • Managed with Lisinopril</span>
-            </div>
-          </div>
-          <div className="issue-item">
-            <span className="issue-ico">🧊</span>
-            <div className="issue-text">
-              <strong>Type 2 Diabetes</strong>
-              <span>Diagnosis: Jan 2024 • Diet & Exercise control</span>
-            </div>
-          </div>
-          <div className="issue-item">
-            <span className="issue-ico">🌿</span>
-            <div className="issue-text">
-              <strong>Seasonal Allergies</strong>
-              <span>Chronic • Antihistamines as needed</span>
-            </div>
-          </div>
-        </div>
+  return (
+    <div className="records-detail">
+      <div className="records-header">
+        <h2>My Medical Records & History</h2>
+        <p>Comprehensive health data and clinical insights</p>
       </div>
 
-      {/* My Appointments Detail */}
-      <div className="record-card appts">
-        <h3>Scheduled Appointments</h3>
-        {appointments.length === 0 ? (
-          <p className="empty-msg">No upcoming appointments.</p>
-        ) : (
-          <>
-            <div className="appt-list-header">
-              <div className="appt-date-box"><span>Date</span></div>
-              <div className="appt-info-box">
-                <span className="appt-doc-header">Attending Doctor</span>
-                <span className="appt-status-header">Status</span>
-              </div>
-            </div>
-            <div className="app-rows">
-              {appointments.map(a => (
-                <div key={a.id} className="app-detail-row">
-                  <div className="appt-date-box">
-                    <span className="appt-date-text">{a.date}</span>
+      <div className="records-grid">
+        {/* Active Health Issues Card */}
+        <div className="record-card issues">
+          <div className="card-header-flex">
+            <h3>Active Health Issues</h3>
+            <span className="status-badge health">{uniqueIssues.length > 0 ? 'Active Monitoring' : 'Stable'}</span>
+          </div>
+          <div className="issues-list">
+            {uniqueIssues.length === 0 ? (
+              <p className="empty-msg-small">No active health issues recorded. Book an appointment to start tracking.</p>
+            ) : (
+              uniqueIssues.map(issue => (
+                <div key={issue} className="issue-item">
+                  <span className="issue-ico">🩺</span>
+                  <div className="issue-text">
+                    <strong>{issue}</strong>
+                    <span>Clinical consultation history found</span>
                   </div>
-                  <div className="appt-info-box">
-                    <span className="appt-doc-name">{a.doctorName}</span>
-                    <span className="appt-status-tag">{a.status}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* My Appointments Detail */}
+        <div className="record-card appts">
+          <h3>Scheduled Appointments</h3>
+          {appointments.length === 0 ? (
+            <p className="empty-msg">No upcoming sessions found.</p>
+          ) : (
+            <div className="app-rows-modern">
+              {appointments.map(a => (
+                <div key={a.id} className="modern-app-row">
+                  <div className="modern-app-date">
+                    <span className="m-date">{a.date}</span>
+                    <span className="m-time">{a.time}</span>
+                  </div>
+                  <div className="modern-app-doc">
+                    <span className="m-doc-name">{a.doctorName}</span>
+                    <span className="m-doc-spec">{a.specialization}</span>
+                  </div>
+                  <div className="modern-app-status">
+                    <span className={`m-status-tag ${a.status}`}>{a.status}</span>
                   </div>
                 </div>
               ))}
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Medication View ──────────────────────────────────────
 const MedicationView: React.FC<{ prescriptions: Prescription[] }> = ({ prescriptions }) => (
