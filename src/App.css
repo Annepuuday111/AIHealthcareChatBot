@@ -1854,7 +1854,6 @@ html, body, #root {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
 }
 
 @media (max-width: 640px) {
