@@ -706,7 +706,7 @@ const LoginPage: React.FC<{ onLogin: (role: 'patient' | 'doctor') => void }> = (
             >
               <div className="role-ico">👤</div>
               <div className="role-txt">
-                <strong>Patient Access</strong>
+                <strong>Patient Login</strong>
                 <span>AI Diagnostics & Portals</span>
               </div>
             </button>
@@ -716,7 +716,7 @@ const LoginPage: React.FC<{ onLogin: (role: 'patient' | 'doctor') => void }> = (
             >
               <div className="role-ico">🩺</div>
               <div className="role-txt">
-                <strong>Medical Treatment</strong>
+                <strong>Doctor Login</strong>
                 <span>Clinical Charts & Prescribing</span>
               </div>
             </button>
