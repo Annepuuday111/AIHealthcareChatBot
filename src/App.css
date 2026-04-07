@@ -2160,3 +2160,36 @@ html, body, #root {
     padding-top: 0.75rem;
   }
 }
+
+/* ─── MOBILE GRID FIXES ────────────────────────────────── */
+@media (max-width: 900px) {
+  .records-grid {
+    grid-template-columns: 1fr !important; /* Force stack on smaller screens */
+    gap: 1.5rem !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .records-detail {
+    padding: 1.5rem 1rem !important;
+  }
+  
+  .modern-app-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem;
+  }
+  
+  .modern-app-doc {
+    border-top: none !important;
+    padding-top: 0 !important;
+  }
+  
+  .modern-app-status {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.25rem;
+  }
+}
