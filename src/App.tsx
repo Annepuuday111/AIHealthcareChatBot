@@ -173,8 +173,10 @@ function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false)
     return `🩺 **Symptom Analysis**\n\nPlease describe your symptoms in more detail. For example:\n• "I have a headache and fever for 2 days"\n• "Chest pain and shortness of breath"\n• "Nausea and stomach cramps after eating"\n\nThe more detail you give, the better I can assess the situation.`;
   }
 
-  // ─ APPOINTMENTS (Default Fallback) ─
+  // ─ APPOINTMENTS ─
   if (scenario === 'appointments') {
+    if (/book|schedule/.test(t)) return '__SPECIALIZATIONS__';
+    if (/cancel/.test(t)) return `✅ Your appointment has been canceled.`;
     return `📅 **Appointment Manager**\n\nI can help you:\n• **"Book an appointment"** — schedule with a doctor\n• **"Show upcoming appointments"** — view your schedule\n• **"Cancel appointment"** — remove a booking\n\nWhat would you like to do?`;
   }
 
@@ -425,14 +427,20 @@ const Chat: React.FC<{
 
     const t = (text || fileName || '').toLowerCase();
 
-    // Handle chart keywords locally (no API needed)
-    if (/\bshow\b.*(bp|blood.?pressure|systolic|adherence|medication|visit)/.test(t) || /\bchart\b|\bgraph\b|\bdata insight/.test(t)) {
+    // ── Handle local mock features (Charts, Appointments, Medication tools) ──
+    const isMockFeature = 
+      (/\bshow\b.*(bp|blood.?pressure|systolic|adherence|medication|visit)/.test(t) || /\bchart\b|\bgraph\b|\bdata insight/.test(t)) ||
+      (scenario === 'medication' && /remind|alert|alarm|notification|refill|stock|interaction|safe|combine|side effect|list|current/.test(t)) ||
+      (scenario === 'appointments' && /book|schedule|appointment/.test(t));
+      
+    if (isMockFeature) {
       await new Promise(r => setTimeout(r, 600));
-      const { reply, chart } = getBotResponse(text || fileName || '', scenario, fileContent);
+      const { reply, chart, interactive } = getBotResponse(text || fileName || '', scenario, fileContent);
       setLoading(false);
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'bot', text: reply, chart }]);
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'bot', text: reply, chart, interactive }]);
       return;
     }
+
 
     // ── File upload → Gemini medical analysis ──────────────────────
     if (fileContent) {
@@ -561,7 +569,7 @@ const Chat: React.FC<{
       const content = (ev.target?.result as string) || '';
       sendToBot(file.name, content, file.name);
     };
-    reader.readAsText(file);
+    reader.readAsDataURL(file); // Reads as base64 (supports PDF, images, etc.)
     e.target.value = '';
   };
 
