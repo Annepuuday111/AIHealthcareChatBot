@@ -343,10 +343,8 @@ const FormattedText: React.FC<{ text: string }> = ({ text }) => {
 
 // ─── Scenario chips ───────────────────────────────────────
 const SCENARIO_CHIPS = [
-  { id: 'records' as Scenario, label: 'Patient Records & History', icon: '📋' },
   { id: 'symptoms' as Scenario, label: 'Symptom Analysis', icon: '🩺' },
   { id: 'appointments' as Scenario, label: 'Appointment Scheduling', icon: '📅' },
-  { id: 'medication' as Scenario, label: 'Medication Tracking', icon: '💊' },
 ];
 
 // ─── Chat ─────────────────────────────────────────────────
