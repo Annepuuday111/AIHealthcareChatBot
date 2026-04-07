@@ -430,6 +430,7 @@ const Chat: React.FC<{
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [selectedSpecialization, setSelectedSpecialization] = useState<string | null>(null);
+  const [showQuickMenu, setShowQuickMenu] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -767,8 +768,42 @@ const Chat: React.FC<{
         </div>
       )}
 
+      {/* Quick Menu Popover */}
+      {showQuickMenu && (
+        <div className="quick-menu-popover">
+          <div className="popover-header">
+            <span>Quick Actions</span>
+            <button onClick={() => setShowQuickMenu(false)}>✕</button>
+          </div>
+          <div className="popover-grid">
+            {SCENARIO_CHIPS.map(chip => (
+              <button 
+                key={chip.id} 
+                className="popover-item"
+                onClick={() => { handleScenarioClick(chip.id); setShowQuickMenu(false); }}
+              >
+                <span className="pop-icon">{chip.icon}</span>
+                <span className="pop-label">{chip.label}</span>
+              </button>
+            ))}
+            <button className="popover-item" onClick={() => { fileInputRef.current?.click(); setShowQuickMenu(false); }}>
+              <span className="pop-icon">📎</span>
+              <span className="pop-label">Upload Report</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input bar */}
       <div className="input-bar">
+        <button 
+          className={`icon-btn menu-toggle ${showQuickMenu ? 'active' : ''}`} 
+          title="Quick Menu"
+          onClick={() => setShowQuickMenu(!showQuickMenu)}
+        >
+          {showQuickMenu ? '✕' : '➕'}
+        </button>
+
         <input 
           type="file" 
           ref={fileInputRef} 
