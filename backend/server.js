@@ -8,7 +8,8 @@ dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const PORT = process.env.PORT || 5001;
 
@@ -153,12 +154,9 @@ Your role:
 - Answer every healthcare-related question clearly, professionally, and empathetically.
 - When the user is in a specific view/scenario, tailor your response to that context.
 - Always be helpful, concise, and easy to understand.
-- If asked about symptoms, provide a preliminary assessment and recommend professional consultation.
-- If asked about appointments, help the user understand how to book, reschedule, or cancel.
-- If asked about medication, provide general safe information and always advise consulting a doctor for prescriptions.
-- If asked about patient records, help explain what they mean in simple terms.
-- For greetings like "hi" or "hello", respond warmly and introduce yourself briefly.
-- For general questions outside healthcare, still be helpful but gently guide back to healthcare topics.
+- If asked about symptoms or if the user mentions an unhealthy issue/condition, provide a preliminary assessment.
+- **CRITICAL RULE**: If the user describes any symptom, illness, or health issue that requires or would benefit from a doctor's attention, you MUST append the exact string "[NEEDS_APPOINTMENT]" at the very end of your response.
+- General questions outside healthcare, still be helpful but gently guide back to healthcare topics.
 - Never refuse to answer a question. Always provide a helpful, thoughtful response.`;
 
     const modelsToTry = [
@@ -175,9 +173,17 @@ Your role:
       try {
         const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
         const result = await model.generateContent(prompt);
-        const text = result.response.text();
-        console.log(`✅ Responded using model: ${modelName}`);
-        return res.json({ reply: text });
+        let text = result.response.text();
+        
+        let needsAppointment = false;
+        if (text.includes('[NEEDS_APPOINTMENT]')) {
+          needsAppointment = true;
+          text = text.replace(/\[NEEDS_APPOINTMENT\]/g, '').trim();
+          text += '\n\n📅 **I strongly recommend booking a consultation.** Please select a specialist below to schedule an appointment for your issue.';
+        }
+
+        console.log(`✅ Responded using model: ${modelName} (Needs Appointment: ${needsAppointment})`);
+        return res.json({ reply: text, needsAppointment });
       } catch (err) {
         console.warn(`⚠️  Model ${modelName} failed: ${err.message}`);
         lastError = err;
@@ -210,18 +216,34 @@ app.post('/api/analyze-report', async (req, res) => {
       'gemini-2.0-flash',
     ];
 
-    // ── Step 1: Validate if content is medical ─────────────────────
-    const validationPrompt = `You are a medical document validator.
+    // Check if the file is sent as base64
+    let inlineDataObj = null;
+    let fileTextToAnalyze = fileContent;
 
-Analyze the following file content and determine if it is a medical document (e.g., lab report, blood test, ECG, prescription, medical history, patient record, radiology report, pathology report, discharge summary, etc.).
+    if (fileContent && fileContent.startsWith('data:')) {
+      const match = fileContent.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (match && match.length === 3) {
+        inlineDataObj = {
+          inlineData: {
+            mimeType: match[1],
+            data: match[2]
+          }
+        };
+      }
+    }
+
+    // ── Step 1: Validate if content is medical ─────────────────────
+    const validationPromptText = `You are a medical document validator.
+
+Analyze the following file and determine if it is a medical document (e.g., lab report, blood test, ECG, prescription, medical history, patient record, radiology report, pathology report, discharge summary, health insurance, etc.).
 
 Respond with ONLY one of these two exact words:
-- "MEDICAL" if it is clearly a medical document
-- "NOT_MEDICAL" if it is not a medical document
+- "MEDICAL" if it is clearly a medical or health-related document
+- "NOT_MEDICAL" if it is not a medical document`;
 
-File name: ${fileName || 'unknown'}
-File content (first 2000 chars):
-${(fileContent || '').substring(0, 2000)}`;
+    const validationMessage = inlineDataObj 
+       ? [validationPromptText, inlineDataObj] 
+       : [validationPromptText, `File name: ${fileName || 'unknown'}\nFile content: ${(fileContent || '').substring(0, 4000)}`];
 
     let isMedical = false;
     let lastError = null;
@@ -229,7 +251,7 @@ ${(fileContent || '').substring(0, 2000)}`;
     for (const modelName of modelsToTry) {
       try {
         const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(validationPrompt);
+        const result = await model.generateContent(validationMessage);
         const verdict = result.response.text().trim().toUpperCase();
         console.log(`🔍 Medical validation (${modelName}): ${verdict}`);
         isMedical = verdict.includes('MEDICAL') && !verdict.includes('NOT_MEDICAL');
@@ -249,34 +271,32 @@ ${(fileContent || '').substring(0, 2000)}`;
     if (!isMedical) {
       return res.json({
         isMedical: false,
-        reply: `⚠️ **Non-Medical Document Detected**\n\nThe file you uploaded does not appear to be a medical report or prescription.\n\nPlease upload a valid medical document such as:\n• 🩸 Blood test / Lab report\n• 💊 Prescription or discharge summary\n• 🫀 ECG / Cardiology report\n• 🧪 Pathology or radiology report\n• 📋 Medical history or patient record\n\nFor symptom analysis, you can also simply type your symptoms in the chat.`
+        reply: `⚠️ **Non-Medical Document Detected**\n\nThe file you uploaded does not appear to be a medical report, prescription, or health document.\n\nPlease upload a valid document such as:\n• 🩸 Blood test / Lab report\n• 💊 Prescription\n• 📑 Health Insurance\n• 📋 Medical history`
       });
     }
 
     // ── Step 3: Deep medical analysis ──────────────────────────────
-    const analysisPrompt = `You are AIHealthBot, an expert AI Healthcare Assistant specialized in medical report analysis.
+    const analysisPromptText = `You are AIHealthBot, an expert AI Healthcare Assistant specialized in medical report analysis.
 
-A patient in the "${scenario}" view has uploaded a medical document. Perform a thorough clinical analysis of this document.
+A patient in the "${scenario}" view has uploaded a medical or health-related document. Perform a thorough clinical or practical analysis of this document.
 
 Your response MUST include:
-1. **Document Type** — What kind of medical report this is
-2. **Key Findings** — The most important values, results, or observations from the report
-3. **Clinical Interpretation** — What these findings mean in plain language
-4. **Risk Assessment** — Any abnormal values, warning signs, or areas of concern
+1. **Document Type** — What kind of document this is (e.g., Insurance, Lab Report, etc.)
+2. **Key Details/Findings** — The most important values, terms, or observations from the report
+3. **Interpretation** — What these details mean in plain language
+4. **Important Notes/Risks** — Any abnormal values, coverage limits, or areas of concern
 5. **Recommendations** — Specific actionable steps the patient should take
-6. **Specialist Referral** — Which type of doctor to consult if needed
-7. **Follow-up** — When to retest or schedule a follow-up
 
-Use clear formatting with headers and bullet points. Be professional, empathetic, and thorough.
+Use clear formatting with headers and bullet points. Be professional, empathetic, and thorough.`;
 
-File name: ${fileName || 'unknown'}
-Document content:
-${(fileContent || '').substring(0, 4000)}`;
+    const analysisMessage = inlineDataObj 
+      ? [analysisPromptText, inlineDataObj] 
+      : [analysisPromptText, `File name: ${fileName || 'unknown'}\nDocument content:\n${(fileContent || '').substring(0, 8000)}`];
 
     for (const modelName of modelsToTry) {
       try {
         const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(analysisPrompt);
+        const result = await model.generateContent(analysisMessage);
         const analysis = result.response.text();
         console.log(`✅ Medical analysis done using model: ${modelName}`);
         return res.json({ isMedical: true, reply: analysis });

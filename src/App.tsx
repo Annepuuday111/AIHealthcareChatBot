@@ -475,8 +475,14 @@ const Chat: React.FC<{
       });
       const data = await response.json();
       const reply = data.reply || "I'm sorry, I couldn't understand that.";
+      
+      let interactive = undefined;
+      if (data.needsAppointment) {
+        interactive = { type: 'specializations', data: SPECIALIZATIONS };
+      }
+      
       setLoading(false);
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'bot', text: reply }]);
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'bot', text: reply, interactive }]);
     } catch (err) {
       console.error('Chat API error:', err);
       setLoading(false);
