@@ -19,7 +19,7 @@ interface Prescription {
 }
 
 // ─── Types ────────────────────────────────────────────────
-type Scenario = 'none' | 'records' | 'symptoms' | 'appointments' | 'medication' | 'dashboard' | 'doctorView' | 'login';
+type Scenario = 'none' | 'records' | 'symptoms' | 'appointments' | 'medication' | 'dashboard' | 'doctorView' | 'login' | 'health_queries';
 
 interface UserAccount {
   name: string;
@@ -142,8 +142,8 @@ function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false)
     return '__SPECIALIZATIONS__';
   }
 
-  // ─ Document / report analysis ─
-  if (scenario === 'records' || scenario === 'none' || isMedia) {
+  // ─ Document / report analysis & Health Queries ─
+  if (scenario === 'records' || scenario === 'none' || scenario === 'health_queries' || isMedia) {
     if (/diabetes|hba1c|glucose|insulin|metformin/.test(t))
       return `📋 **Medical Report Analysis — Diabetes Indicators Detected**\n\n• **Condition:** Type 2 Diabetes suspected or confirmed\n• **HbA1c** monitoring is critical (target < 7%)\n• **Fasting blood glucose** should be maintained between 80–130 mg/dL\n\n✅ **Recommendations:**\n1. Continue/initiate **Metformin** if not already prescribed\n2. Low-glycaemic diet: avoid refined carbs, sugary drinks\n3. 30 minutes of moderate exercise 5 days/week\n4. Follow-up HbA1c test in 3 months\n\n⚠️ **Alert:** If glucose > 300 mg/dL accompanied by vomiting/confusion — seek emergency care.`;
     if (/hypertension|blood pressure|systolic|diastolic|bp/.test(t))
@@ -155,9 +155,29 @@ function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false)
     if (/kidney|creatinine|gfr|renal|urine|protein/.test(t))
       return `📋 **Medical Report Analysis — Kidney Function Indicators Detected**\n\n• **Creatinine** elevated or **GFR** reduced — signs of CKD possible\n\n✅ **Recommendations:**\n1. Fluid intake: 2–3 litres water/day\n2. Low-protein, low-potassium diet\n3. Avoid **NSAIDs** (ibuprofen, naproxen)\n4. Control blood pressure and blood sugar tightly\n5. **Nephrology referral** recommended`;
     
+    // Detailed Health Queries
+    if (/fever|temperature|hot|cold|chills/.test(t))
+      return `🩺 **Health Query — Fever Management**\n\n• **Normal Range:** 36.5–37.5°C (97.7–99.5°F)\n\n✅ **Guidance:**\n1. Stay hydrated: Drink water, broth, or electrolyte solutions\n2. Rest adequately\n3. Take paracetamol (acetaminophen) if discomfort persists\n4. Monitor temperature every 4–6 hours\n\n⚠️ **See a Doctor if:** Fever > 103°F (39.4°C), lasts > 3 days, or if accompanied by a stiff neck or rash.`;
+    
+    if (/headache|migraine|brain|head.?pain/.test(t))
+      return `🩺 **Health Query — Headache Relief**\n\n• **Common Causes:** Stress, dehydration, eye strain, or lack of sleep\n\n✅ **Relief Tips:**\n1. Rest in a dark, quiet room\n2. Apply a cold compress to the forehead\n3. Stay hydrated\n4. Limit screen time\n\n⚠️ **Warning:** Seek immediate help if the headache is sudden and "thunderclap" in intensity, or if accompanied by vision loss or confusion.`;
+
+    if (/diet|food|eat|nutrition|weight/.test(t))
+      return `🩺 **Health Query — Clinical Nutrition Guidance**\n\n• **Core Principles:** Whole foods, balanced macronutrients, and hydration\n\n✅ **Recommendations:**\n1. Increase **fiber** intake (25–30g/day) via vegetables and legumes\n2. Lean protein at every meal (fish, poultry, beans, tofu)\n3. Healthy fats: Avocado, nuts, seeds, olive oil\n4. Avoid processed sugars and trans fats\n\n📊 Type **"show diet chart"** for a sample meal plan.`;
+
+    if (/exercise|workout|gym|run|walk|fitness/.test(t))
+      return `🩺 **Health Query — Physical Activity Guidelines**\n\n• **Goal:** 150 minutes of moderate-intensity aerobic activity per week\n\n✅ **Clinical Advice:**\n1. Include strength training 2 days/week\n2. Maintain consistent hydration during workouts\n3. Warm up for 5–10 mins to prevent musculoskeletal injury\n4. Start slow if sedentary: 10 min walks daily`;
+
+    if (/sleep|insomnia|tired|fatigue/.test(t))
+      return `🩺 **Health Query — Sleep Hygiene & Fatigue**\n\n• **Goal:** 7–9 hours of restorative sleep per night\n\n✅ **Sleep Tips:**\n1. Consistent sleep/wake schedule\n2. No caffeine after 2:00 PM\n3. No blue light (screens) 1 hour before bed\n4. Ensure a cool, dark environment`;
+
     if (isMedia) return `📋 **Document Analysed.**\n\nI reviewed the uploaded document and detected medical context. However, I couldn't map it to a specific condition. Please ensure the document is clear or describe the issue in text.`;
 
-    return `📋 **Document Analysed.**\n\nI reviewed the uploaded document but could not detect specific medical keywords. Here's what you can do next:\n\n1. Type or describe the key findings (e.g., "HbA1c is 7.2")\n2. Mention which conditions are listed and I'll give detailed guidance\n3. Switch to a scenario using the selector for focused assistance`;
+    if (scenario === 'health_queries') {
+      return `🩺 **Health Query Received**\n\nI'm ready to assist with your medical questions. Please be more specific so I can provide accurate clinical guidance. You can ask about:\n\n• **Symptoms** (e.g., "I have a sharp pain in my side")\n• **Conditions** (e.g., "Tell me about managing diabetes")\n• **Wellness** (e.g., "What is a healthy diet for high BP?")\n\nHow can I support your health journey today?`;
+    }
+
+    return `📋 **Healthcare Analysis System**\n\nI reviewed your query but could not detect specific medical keywords. Here's how I can help:\n\n1. Type symptoms for a diagnostic review\n2. Ask health questions (e.g., "how to manage fever")\n3. Upload medical reports for clinical analysis\n4. Switch to a specialized mode using the selector`;
   }
 
   // ─ SYMPTOMS ─
@@ -202,7 +222,7 @@ function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false)
   }
 
   // ─ Default ─
-  return `Hello! I'm **MediSync AI** 🤖\n\nI'm your intelligent healthcare assistant. Please select one of the specialised modes above or type your health question.\n\nYou can also:\n• 📎 **Upload a medical report** or prescription for analysis\n• 🎤 Use **voice input** to speak your symptoms\n• 📊 Ask for **"data insights"** for visual analytics`;
+  return `Hello! I'm **MediSync AI** 👋\n\nI'm your intelligent healthcare assistant. Please select one of the specialised modes above or type your health question.\n\nYou can also:\n• 📎 **Upload a medical report** or prescription for analysis\n• 🎤 Use **voice input** to speak your symptoms\n• 📊 Ask for **"data insights"** for visual analytics`;
 }
 
 function getBotResponse(
@@ -343,6 +363,7 @@ const FormattedText: React.FC<{ text: string }> = ({ text }) => {
 
 // ─── Scenario chips ───────────────────────────────────────
 const SCENARIO_CHIPS = [
+  { id: 'health_queries' as Scenario, label: 'Health Queries', icon: '❓' },
   { id: 'symptoms' as Scenario, label: 'Symptom Analysis', icon: '🩺' },
   { id: 'appointments' as Scenario, label: 'Appointment Scheduling', icon: '📅' },
 ];
@@ -352,11 +373,10 @@ const SCENARIO_CHIPS = [
 const Chat: React.FC<{
   scenario: Scenario,
   setScenario: (s: Scenario) => void,
-  appointments: UserAppointment[],
   addAppointment: (app: UserAppointment) => void,
   currentUser: UserAccount | null
 }> = ({
-  scenario, setScenario, appointments, addAppointment, currentUser
+  scenario, setScenario, addAppointment, currentUser
 }) => {
   const WELCOME: Message = {
     id: 'welcome',
@@ -423,13 +443,16 @@ const Chat: React.FC<{
         return;
       }
       
+      const appDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const appTime = '11:00 AM';
+
       const newApp: UserAppointment = {
         id: 'app_' + Date.now(),
         doctorId: doctor.id,
         doctorName: doctor.name,
         patientName: currentUser?.name || 'Unknown Patient',
-        date: new Date().toISOString().split('T')[0],
-        time: '11:00 AM',
+        date: appDate,
+        time: appTime,
         status: 'pending'
       };
       addAppointment(newApp);
@@ -437,7 +460,11 @@ const Chat: React.FC<{
       setMessages(prev => [
         ...prev,
         { id: 'usr_'+Date.now(), role: 'user', text: `Book with ${doctor.name}` },
-        { id: 'bot_'+Date.now(), role: 'bot', text: `✅ **Appointment Confirmed!**\n\nYour appointment with **${doctor.name}** has been scheduled successfully. You have been added to the doctor's treatment list.` }
+        { 
+          id: 'bot_'+Date.now(), 
+          role: 'bot', 
+          text: `✅ **Appointment Confirmed Automatically**\n\nYou have successfully booked an appointment with **${doctor.name}** on **${appDate}** at **${appTime}**. Your profile has been updated in the doctor's clinical queue.` 
+        }
       ]);
     }
   };
@@ -445,18 +472,20 @@ const Chat: React.FC<{
   const handleScenarioClick = (s: Scenario) => {
     setScenario(s);
     const chip = SCENARIO_CHIPS.find(c => c.id === s)!;
-    
-    let text = `${chip.icon} **${chip.label}** mode activated!`;
-    if (s === 'appointments' && appointments.length > 0) {
-      text += `\n\n📋 **Your Current Appointments:**\n` + 
-        appointments.map((a, i) => `${i+1}. **${a.doctorName}** — ${a.date} at ${a.time} [${a.status}]`).join('\n');
+
+    if (s === 'appointments') {
+      const botMsg: Message = {
+        id: Date.now().toString(),
+        role: 'bot',
+        text: `📅 **Appointment Scheduling Initialized**\n\nPlease select a medical specialization to find available doctors:`,
+        interactive: { type: 'specializations', data: SPECIALIZATIONS }
+      };
+      setMessages(prev => [...prev, botMsg]);
+      return;
     }
 
-    const botMsg: Message = {
-      id: Date.now().toString(),
-      role: 'bot',
-      text,
-    };
+    let text = `${chip.icon} **${chip.label}** mode activated!`;
+    const botMsg: Message = { id: Date.now().toString(), role: 'bot', text };
     setMessages(prev => [...prev, botMsg]);
   };
 
@@ -1061,6 +1090,21 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [scenario, setScenario] = useState<Scenario>('login');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Restore session on refresh
+  useEffect(() => {
+    const savedSession = localStorage.getItem('mediSync_session');
+    if (savedSession) {
+      try {
+        const user = JSON.parse(savedSession);
+        setCurrentUser(user);
+        setView(user.role);
+        setScenario('none'); // Bypass login page
+      } catch (e) {
+        localStorage.removeItem('mediSync_session');
+      }
+    }
+  }, []);
   const [appointments, setAppointments] = useState<UserAppointment[]>(INITIAL_APPOINTMENTS);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>(INITIAL_PRESCRIPTIONS);
 
@@ -1083,7 +1127,12 @@ export default function App() {
     return true;
   });
 
-  if (scenario === 'login') return <LoginPage onLogin={(user) => { setCurrentUser(user); setView(user.role); setScenario('none'); }} />;
+  if (scenario === 'login') return <LoginPage onLogin={(user) => { 
+    localStorage.setItem('mediSync_session', JSON.stringify(user));
+    setCurrentUser(user); 
+    setView(user.role); 
+    setScenario('none'); 
+  }} />;
 
   const activeLabel = getNavLabel(scenario) || 'General Chat';
 
@@ -1120,7 +1169,12 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-footer">
-          <button className="logout-action" onClick={() => { setView('patient'); setScenario('login'); setCurrentUser(null); }}>
+          <button className="logout-action" onClick={() => { 
+            localStorage.removeItem('mediSync_session');
+            setView('patient'); 
+            setScenario('login'); 
+            setCurrentUser(null); 
+          }}>
             <span>🚪</span> Logout
           </button>
         </div>
@@ -1184,7 +1238,6 @@ export default function App() {
             <Chat 
               scenario={scenario} 
               setScenario={setScenario} 
-              appointments={appointments} 
               addAppointment={addAppointment} 
               currentUser={currentUser}
             />
