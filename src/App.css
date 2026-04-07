@@ -294,16 +294,19 @@ html, body, #root {
 .login-hero-centered {
   position: relative;
   margin-bottom: 4rem;
-  text-align: center;
+}
+.logo-pulse-box {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
 }
 .logo-pulse {
-  font-size: 4rem;
-  margin-bottom: 2rem;
-  display: block;
+  font-size: 4.5rem;
   animation: float 3s ease-in-out infinite;
 }
-.login-hero-centered h1 { font-size: 3rem; font-weight: 800; color: #1e293b; letter-spacing: -0.02em; }
-.login-hero-centered p { color: #64748B; font-weight: 600; font-size: 1.1rem; margin-top: 0.75rem; }
+.login-hero-centered h1 { font-size: 3rem; font-weight: 800; color: #1e293b; letter-spacing: -0.02em; text-align: left; }
+.login-hero-centered p { color: #64748B; font-weight: 600; font-size: 1.1rem; margin-top: 0.75rem; text-align: left; }
 
 .role-stack {
   position: relative;
