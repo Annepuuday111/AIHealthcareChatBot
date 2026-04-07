@@ -99,8 +99,9 @@ html, body, #root {
 }
 
 .sidebar-footer {
-  padding: 0.875rem;
-  border-top: 1px solid rgba(255,255,255,0.07);
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin-top: auto;
 }
 .user-pill { display: flex; align-items: center; gap: 0.75rem; }
 .user-ava {
@@ -196,7 +197,7 @@ html, body, #root {
   display: flex;
   align-items: flex-end;
   gap: 0.625rem;
-  padding: 0.875rem 1.25rem;
+  padding: 1rem 1.25rem;
   background: #fff;
   border-top: 1px solid #E2E8F0;
   flex-shrink: 0;
