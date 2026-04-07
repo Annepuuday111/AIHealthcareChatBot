@@ -1129,8 +1129,33 @@ const PatientRecords: React.FC<{ appointments: UserAppointment[] }> = ({ appoint
     <div className="records-grid">
       {/* Active Health Issues Card */}
       <div className="record-card issues">
-        <h3>Active Health Issues</h3>
-        <p className="empty-msg-small">No chronic conditions recorded.</p>
+        <div className="card-header-flex">
+          <h3>Active Health Issues</h3>
+          <span className="status-badge health">Stable</span>
+        </div>
+        <div className="issues-list">
+          <div className="issue-item">
+            <span className="issue-ico">🩹</span>
+            <div className="issue-text">
+              <strong>Hypertension</strong>
+              <span>Diagnosis: Oct 2023 • Managed with Lisinopril</span>
+            </div>
+          </div>
+          <div className="issue-item">
+            <span className="issue-ico">🧊</span>
+            <div className="issue-text">
+              <strong>Type 2 Diabetes</strong>
+              <span>Diagnosis: Jan 2024 • Diet & Exercise control</span>
+            </div>
+          </div>
+          <div className="issue-item">
+            <span className="issue-ico">🌿</span>
+            <div className="issue-text">
+              <strong>Seasonal Allergies</strong>
+              <span>Chronic • Antihistamines as needed</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* My Appointments Detail */}

@@ -1985,3 +1985,86 @@ html, body, #root {
     z-index: 500; /* Stays below side drawer but above chat */
   }
 }
+
+/* ─── LARGE SCREEN OPTIMIZATIONS ───────────────────────── */
+@media (min-width: 1280px) {
+  .records-detail, 
+  .medication-detail, 
+  .doctor-panel,
+  .dashboard-page {
+    max-width: 1440px !important; /* Expansion to fill wide screens */
+    padding: 3rem 4rem !important;
+  }
+}
+
+/* ─── ACTIVE HEALTH ISSUES STYLING ─────────────────────── */
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.25rem;
+}
+
+.status-badge.health {
+  background: #DCFCE7;
+  color: #166534;
+  padding: 0.35rem 0.85rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.issue-item {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 1.25rem;
+}
+
+.issue-ico {
+  width: 44px;
+  height: 44px;
+  background: white;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+}
+
+.issue-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.issue-text strong {
+  font-size: 1.05rem;
+  color: #1E293B;
+  margin-bottom: 0.15rem;
+}
+
+.issue-text span {
+  font-size: 0.85rem;
+  color: #64748B;
+}
+
+/* Horizontal expansion for my records */
+.records-grid {
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 3rem !important;
+}
+
+.record-card {
+  height: 100%;
+}
