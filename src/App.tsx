@@ -425,12 +425,7 @@ const Chat: React.FC<{
 }> = ({
   scenario, setScenario, addAppointment, currentUser, appointments, prescriptions, addToast
 }) => {
-  const WELCOME: Message = {
-    id: 'welcome',
-    role: 'bot',
-    text: 'Hello! I\'m **MediSync AI** 👋\n\nPlease select a topic below to get started, or type your health question directly. You can also **📎 upload a medical report / prescription.**',
-  };
-  const [messages, setMessages] = useState<Message[]>([WELCOME]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
@@ -657,8 +652,28 @@ const Chat: React.FC<{
   };
 
   return (
-    <div className="app-container-inner">
-      <div className="chat-page">
+    <div className="chat-page">
+      {/* Real-time Notifications - Handled at App root now */}
+
+      {messages.length === 0 && (
+        <div className="welcome-section" style={{ padding: '2rem', textAlign: 'center' }}>
+          <div className="scenario-chips" style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+            {SCENARIO_CHIPS.map(chip => (
+              <button
+                key={chip.id}
+                className="chip interactive-btn"
+                style={{ padding: '0.75rem 1.25rem', borderRadius: '1rem', background: 'white', border: '1.5px solid #E2E8F0', cursor: 'pointer' }}
+                onClick={() => handleScenarioClick(chip.id)}
+              >
+                {chip.icon} {chip.label}
+              </button>
+            ))}
+          </div>
+          <p style={{ color: '#64748B', fontSize: '0.95rem' }}>Select a topic above or type your health question below to begin.</p>
+        </div>
+      )}
+
+      <div className="messages-scroll">
         {messages.map(msg => (
           <div key={msg.id} className={`msg-row ${msg.role}`}>
             <div className="msg-avatar">{msg.role === 'bot' ? '🩺' : '👤'}</div>
@@ -703,33 +718,9 @@ const Chat: React.FC<{
                       className="interactive-btn active"
                       onClick={() => setScenario('records')}
                     >
-                      📋 Go to My Records
+                      📁 View My Records
                     </button>
                   )}
-                </div>
-              )}
-
-              {/* Quick Actions (Text/Voice options requested) */}
-              {msg.role === 'bot' && msg.id !== 'welcome' && (
-                <div className="quick-actions">
-                  <button className="action-chip" onClick={() => setInput('Tell me more')}>Any other?</button>
-                  <button className="action-chip" onClick={() => { setInput(''); fileInputRef.current?.click(); }}>📎 Upload</button>
-                  <button className="action-chip voice" onClick={toggleVoiceInput}>🎤 Voice</button>
-                </div>
-              )}
-
-              {/* Show scenario chips specifically for welcome message */}
-              {msg.id === 'welcome' && (
-                <div className="scenario-chips">
-                  {SCENARIO_CHIPS.map(chip => (
-                    <button
-                      key={chip.id}
-                      className={`chip ${scenario === chip.id ? 'chip-active' : ''}`}
-                      onClick={() => handleScenarioClick(chip.id)}
-                    >
-                      {chip.icon} {chip.label}
-                    </button>
-                  ))}
                 </div>
               )}
             </div>
@@ -738,43 +729,42 @@ const Chat: React.FC<{
         {loading && (
           <div className="msg-row bot">
             <div className="msg-avatar">🩺</div>
-            <div className="msg-bubble bot">
-              <div className="typing-dots"><span /><span /><span /></div>
+            <div className="msg-content">
+              <div className="msg-bubble bot">
+                <div className="typing-dots">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
             </div>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      {/* Active scenario - Fixed Context Box */}
-      {scenario !== 'none' && scenario !== 'health_queries' && scenario !== 'dashboard' && scenario !== 'login' && (
-        <div className="fixed-scenario-box">
-          <span className="fixed-context-label">
-            {SCENARIO_CHIPS.find(c => c.id === scenario)?.icon} {SCENARIO_CHIPS.find(c => c.id === scenario)?.label}
-          </span>
+      {/* Active context bar */}
+      {scenario !== 'none' && scenario !== 'login' && (
+        <div className="active-mode-bar">
+          <div className="fixed-context-label">
+             <span>📌 Mode:</span> <strong>{NAV_ITEMS.find(n => n.id === scenario)?.label}</strong>
+          </div>
+          <button className="mode-clear" onClick={() => setScenario('none')}>Reset Context ✕</button>
         </div>
       )}
 
+      {/* Input bar */}
       <div className="input-bar">
-        {/* Hidden file input */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          style={{ display: 'none' }}
-          accept=".txt,.pdf,.csv,.json,.xml,.doc,.docx,.png,.jpg,.jpeg"
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          style={{ display: 'none' }} 
+          accept="image/*,application/pdf"
           onChange={handleFileChange}
         />
-
-        {/* Attach */}
-        <button
-          className="icon-btn"
-          title="Upload medical report / prescription"
-          onClick={() => fileInputRef.current?.click()}
-        >
+        <button className="icon-btn" title="Upload report" onClick={() => fileInputRef.current?.click()}>
           📎
         </button>
-
-        <textarea
+        
+        <textarea 
           className="chat-textarea"
           rows={1}
           value={input}
@@ -793,11 +783,10 @@ const Chat: React.FC<{
         </button>
 
         {/* Send */}
-        <button
-          className="send-btn"
+        <button 
+          className="send-btn" 
+          disabled={!input.trim() || loading}
           onClick={handleSend}
-          disabled={!input.trim() && !loading}
-          title="Send"
         >
           ➤
         </button>
