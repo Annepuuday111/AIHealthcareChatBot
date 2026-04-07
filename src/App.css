@@ -1963,3 +1963,25 @@ html, body, #root {
     flex-shrink: 0;
   }
 }
+
+/* ─── MOBILE Z-INDEX & LAYER FIXES ───────────────────────── */
+@media (max-width: 768px) {
+  .sidebar { 
+    z-index: 2000 !important; 
+    box-shadow: 10px 0 30px rgba(0,0,0,0.3);
+  }
+  
+  .overlay { 
+    z-index: 1990 !important; 
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(3px);
+  }
+  
+  .input-bar { 
+    z-index: 100; /* Stays below side drawer */
+  }
+
+  .quick-menu-popover {
+    z-index: 500; /* Stays below side drawer but above chat */
+  }
+}
