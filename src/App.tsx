@@ -1138,12 +1138,12 @@ export default function App() {
           </div>
           <div className="topbar-right">
              <div className="user-pill">
-              <div className="user-ava">
-                {currentUser?.name.charAt(0) || (view === 'doctor' ? 'D' : 'P')}
-              </div>
               <span className="user-name">
                 {currentUser?.name || (view === 'doctor' ? 'Medical Professional' : 'Patient User')}
               </span>
+              <div className="user-ava">
+                {currentUser?.name.charAt(0) || (view === 'doctor' ? 'D' : 'P')}
+              </div>
             </div>
           </div>
         </header>
@@ -1177,9 +1177,9 @@ export default function App() {
                </div>
             </div>
           ) : scenario === 'records' && view === 'patient' ? (
-            <PatientRecords appointments={appointments} />
+            <PatientRecords appointments={appointments.filter(a => a.patientName === currentUser?.name)} />
           ) : scenario === 'medication' && view === 'patient' ? (
-            <MedicationView prescriptions={prescriptions} />
+            <MedicationView prescriptions={prescriptions.filter(p => p.patientName === currentUser?.name)} />
           ) : scenario === 'dashboard' ? (
             <Dashboard />
           ) : (
