@@ -895,6 +895,44 @@ const MedicationView: React.FC<{ prescriptions: Prescription[] }> = ({ prescript
   </div>
 );
 
+// ─── Doctor Home (Overall Dashboard) ──────────────────────
+const DoctorOverallDashboard: React.FC<{ 
+  appointments: UserAppointment[] 
+}> = ({ appointments }) => (
+  <div className="doctor-panel">
+    <div className="doc-header">
+      <h2>Clinical Overview</h2>
+      <p>Summary of your practice and patient activity.</p>
+    </div>
+    
+    <div className="patient-stats-grid">
+      <div className="stat-card">
+        <span>Total Patients</span>
+        <strong>{new Set(appointments.map(a => a.patientName)).size}</strong>
+      </div>
+      <div className="stat-card">
+        <span>Pending Requests</span>
+        <strong>{appointments.filter(a => a.status === 'pending').length}</strong>
+      </div>
+      <div className="stat-card">
+        <span>Completed Today</span>
+        <strong>{appointments.filter(a => a.status === 'completed').length}</strong>
+      </div>
+    </div>
+
+    <div className="medical-history">
+      <h3>Quick Actions</h3>
+      <div className="app-list" style={{ marginTop: '1rem' }}>
+        <p style={{ color: '#64748B', fontSize: '0.9rem' }}>Recent system activity and doctor alerts will appear here.</p>
+        <div className="history-item" style={{ marginTop: '1rem' }}>
+           <span className="h-date">Alert</span>
+           <p>System update scheduled for maintenance tonight at 12:00 AM.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 // ─── Root App ─────────────────────────────────────────────
 export default function App() {
   const [view, setView] = useState<'login' | 'patient' | 'doctor'>('login');
@@ -917,7 +955,6 @@ export default function App() {
       return item.id !== 'dashboard' && item.id !== 'symptoms';
     }
     if (view === 'doctor') {
-      // Doctor items: Appointments, Records, Dashboard
       return item.id === 'appointments' || item.id === 'records' || item.id === 'dashboard';
     }
     return true;
@@ -941,7 +978,7 @@ export default function App() {
               className={`nav-btn ${scenario === 'none' && view === 'doctor' ? 'active' : ''}`}
               onClick={() => { setScenario('none'); setSidebarOpen(false); }}
             >
-              <span className="nav-icon">🩺</span>
+              <span className="nav-icon">🏠</span>
               Dashboard
             </button>
           )}
@@ -983,12 +1020,16 @@ export default function App() {
         </header>
 
         <main className="content-scroll">
-          {view === 'doctor' && (scenario === 'none' || scenario === 'appointments') ? (
+          {view === 'doctor' && scenario === 'none' ? (
+            <DoctorOverallDashboard appointments={appointments} />
+          ) : view === 'doctor' && scenario === 'appointments' ? (
             <DoctorDashboard appointments={appointments} onSuggestMedicine={addPrescription} />
           ) : view === 'doctor' && scenario === 'records' ? (
             <div className="doctor-panel">
-               <h2>Independent Patient Records</h2>
-               <p>Search and manage patient health documentation.</p>
+               <div className="doc-header">
+                <h2>Patient Records</h2>
+                <p>Search and manage patient health documentation.</p>
+               </div>
                <div className="app-list">
                  {Array.from(new Set(appointments.map(a => a.patientName))).map(pName => (
                    <div key={pName} className="app-card">
@@ -996,7 +1037,7 @@ export default function App() {
                         <div className="p-ava">{pName.charAt(0)}</div>
                         <div className="p-det"><strong>{pName}</strong><span>Verified Patient</span></div>
                       </div>
-                      <button className="action-btn-main" onClick={() => setScenario('none')}>View Profile</button>
+                      <button className="action-btn-main" onClick={() => setScenario('appointments')}>View Profile</button>
                    </div>
                  ))}
                </div>
