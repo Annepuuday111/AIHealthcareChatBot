@@ -423,12 +423,64 @@ const Chat: React.FC<{
     setInput('');
     setLoading(true);
 
-    await new Promise(r => setTimeout(r, 800 + Math.random() * 700));
-    const { reply, chart, interactive } = getBotResponse(text || fileName || '', scenario, fileContent);
-    const botMsg: Message = { id: (Date.now() + 1).toString(), role: 'bot', text: reply, chart, interactive };
-    setLoading(false);
-    setMessages(prev => [...prev, botMsg]);
+    const t = (text || fileName || '').toLowerCase();
+
+    // Handle chart keywords locally (no API needed)
+    if (/\bshow\b.*(bp|blood.?pressure|systolic|adherence|medication|visit)/.test(t) || /\bchart\b|\bgraph\b|\bdata insight/.test(t)) {
+      await new Promise(r => setTimeout(r, 600));
+      const { reply, chart } = getBotResponse(text || fileName || '', scenario, fileContent);
+      setLoading(false);
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'bot', text: reply, chart }]);
+      return;
+    }
+
+    // ── File upload → Gemini medical analysis ──────────────────────
+    if (fileContent) {
+      try {
+        const response = await fetch('http://localhost:5001/api/analyze-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileContent, fileName, scenario }),
+        });
+        const data = await response.json();
+        const reply = data.reply || "Unable to analyze this document.";
+        setLoading(false);
+        setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'bot', text: reply }]);
+      } catch (err) {
+        console.error('Analyze report error:', err);
+        setLoading(false);
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: 'bot',
+          text: "⚠️ **Connection Error**\n\nUnable to analyze the file. Please make sure the backend is running on port 5001."
+        }]);
+      }
+      return;
+    }
+
+    // ── Text messages → Gemini chat ────────────────────────────────
+    try {
+      const response = await fetch('http://localhost:5001/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text.trim(), scenario }),
+      });
+      const data = await response.json();
+      const reply = data.reply || "I'm sorry, I couldn't understand that.";
+      setLoading(false);
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'bot', text: reply }]);
+    } catch (err) {
+      console.error('Chat API error:', err);
+      setLoading(false);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'bot',
+        text: "⚠️ **Connection Error**\n\nUnable to reach the AI server. Please make sure the backend is running on port 5001."
+      }]);
+    }
   }, [scenario]);
+
+
 
   const handleInteractiveClick = (type: string, value: any) => {
     if (type === 'specializations') {
