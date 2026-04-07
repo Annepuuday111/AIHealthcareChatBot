@@ -160,10 +160,11 @@ Your role:
 - Never refuse to answer a question. Always provide a helpful, thoughtful response.`;
 
     const modelsToTry = [
+      'gemini-3-flash',
+      'gemini-3.1-flash-lite',
       'gemini-2.5-flash',
       'gemini-2.0-flash-lite',
       'gemini-flash-latest',
-      'gemini-2.0-flash',
     ];
 
     const prompt = `User is in "${scenario}" view.\n\nUser message: ${message}`;
@@ -210,10 +211,11 @@ app.post('/api/analyze-report', async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
     const modelsToTry = [
+      'gemini-3-flash',
+      'gemini-3.1-flash-lite',
       'gemini-2.5-flash',
       'gemini-2.0-flash-lite',
       'gemini-flash-latest',
-      'gemini-2.0-flash',
     ];
 
     // Check if the file is sent as base64
