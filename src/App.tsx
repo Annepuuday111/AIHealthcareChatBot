@@ -64,6 +64,13 @@ interface Message {
   interactive?: any; // For doctor selection buttons etc
 }
 
+interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'info' | 'warning' | 'error';
+  icon?: string;
+}
+
 // ─── Mock Data ────────────────────────────────────────────
 const SPECIALIZATIONS = [
   'General Physician',
@@ -432,6 +439,15 @@ const Chat: React.FC<{
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
 
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const addToast = (message: string, type: Toast['type'] = 'info', icon?: string) => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, message, type, icon }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 5000);
+  };
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
@@ -470,6 +486,10 @@ const Chat: React.FC<{
       const { reply, chart, interactive } = getBotResponse(text || fileName || '', scenario, fileContent);
       setLoading(false);
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'bot', text: reply, chart, interactive }]);
+      
+      if (t.includes('remind') || t.includes('alert')) {
+        addToast("Medication reminders activated!", "success", "🔔");
+      }
       return;
     }
 
@@ -519,6 +539,7 @@ const Chat: React.FC<{
       let interactive = undefined;
       if (data.needsAppointment) {
         interactive = { type: 'specializations', data: SPECIALIZATIONS };
+        addToast("Health issue detected. Recommended: Book Consultaion", "warning", "🩺");
       }
       
       setLoading(false);
@@ -645,6 +666,17 @@ const Chat: React.FC<{
 
   return (
     <div className="chat-page">
+      {/* Real-time Notifications */}
+      <div className="toast-container">
+        {toasts.map(t => (
+          <div key={t.id} className={`toast toast-${t.type}`}>
+            <span className="toast-icon">{t.icon || '🔔'}</span>
+            <div className="toast-content">{t.message}</div>
+            <button className="toast-close" onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}>✕</button>
+          </div>
+        ))}
+      </div>
+
       <div className="messages-scroll">
         {messages.map(msg => (
           <div key={msg.id} className={`msg-row ${msg.role}`}>
