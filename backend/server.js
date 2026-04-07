@@ -94,6 +94,17 @@ app.post('/api/appointments', async (req, res) => {
   }
 });
 
+app.patch('/api/appointments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const appt = await Appointment.findByIdAndUpdate(id, { status }, { new: true });
+    res.json(appt);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 4. Get Appointments (for a specific user)
 app.get('/api/appointments/:email', async (req, res) => {
   try {

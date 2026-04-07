@@ -44,6 +44,7 @@ interface UserAppointment {
   doctorId: string;
   doctorName: string;
   patientName: string;
+  patientEmail: string;
   time: string;
   date: string;
   status: 'confirmed' | 'pending' | 'completed';
@@ -572,6 +573,7 @@ const Chat: React.FC<{
         doctorId: doctor.id,
         doctorName: doctor.name,
         patientName: currentUser?.name || 'Unknown Patient',
+        patientEmail: currentUser?.email || 'patient@example.com',
         date: appDate,
         time: appTime,
         status: 'pending',
@@ -866,6 +868,7 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [selectedDocId, setSelectedDocId] = useState('');
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -886,6 +889,11 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
         setIsRegistering(false);
         setEmail(''); setPassword(''); setName('');
       } else {
+        if (selectedRole === 'doctor' && selectedDocId) {
+          const doc = MOCK_DOCTORS.find(d => d.id === selectedDocId);
+          if (doc) onLogin({ name: doc.name, email: `${doc.id}@medical.com`, role: 'doctor' });
+          return;
+        }
         const response = await axios.post(`${API_URL}/login`, { email, password, role: selectedRole });
         onLogin(response.data.user);
       }
@@ -941,52 +949,85 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
             </p>
 
             <form className={`auth-form ${!selectedRole ? 'form-locked' : ''}`} onSubmit={handleAuth}>
-              {isRegistering && (
+              {selectedRole === 'doctor' ? (
                 <div className="input-group">
-                  <label>Full Name</label>
-                  <input 
-                    placeholder="John Doe" 
-                    value={name} 
-                    onChange={e => setName(e.target.value)} 
-                    required 
-                    disabled={!selectedRole}
-                  />
+                  <label>Select Authorized Doctor</label>
+                  <select 
+                    className="doctor-select"
+                    value={selectedDocId} 
+                    onChange={e => setSelectedDocId(e.target.value)}
+                    required
+                  >
+                    <option value="">Choose a Doctor...</option>
+                    {MOCK_DOCTORS.map(d => (
+                      <option key={d.id} value={d.id}>{d.avatar} {d.name} ({d.specialization})</option>
+                    ))}
+                  </select>
                 </div>
+              ) : (
+                <>
+                  {isRegistering && (
+                    <div className="input-group">
+                      <label>Full Name</label>
+                      <input 
+                        placeholder="John Doe" 
+                        value={name} 
+                        onChange={e => setName(e.target.value)} 
+                        required 
+                        disabled={!selectedRole}
+                      />
+                    </div>
+                  )}
+                  <div className="input-group">
+                    <label>Email Address</label>
+                    <input 
+                      type="email" 
+                      placeholder="user@example.com" 
+                      value={email} 
+                      onChange={e => setEmail(e.target.value)} 
+                      required 
+                      disabled={!selectedRole}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Password</label>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={password} 
+                      onChange={e => setPassword(e.target.value)} 
+                      required 
+                      disabled={!selectedRole}
+                    />
+                  </div>
+                </>
               )}
-              <div className="input-group">
-                <label>Email Address</label>
-                <input 
-                  type="email" 
-                  placeholder="user@example.com" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  required 
-                  disabled={!selectedRole}
-                />
-              </div>
-              <div className="input-group">
-                <label>Password</label>
-                <input 
-                  type="password" 
-                  placeholder="••••••••" 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  required 
-                  disabled={!selectedRole}
-                />
-              </div>
-              <button type="submit" disabled={!selectedRole} className="auth-submit-btn">
-                {isRegistering ? 'Register' : 'Login'}
+              <button type="submit" disabled={!selectedRole || (selectedRole === 'doctor' && !selectedDocId)} className="auth-submit-btn">
+                {selectedRole === 'doctor' ? 'Access Clinical Portal' : (isRegistering ? 'Register' : 'Login')}
               </button>
             </form>
 
             <div className="auth-toggle">
+              {!isRegistering && selectedRole === 'doctor' && (
+                <div className="demo-login-box">
+                  <p>Or use clinician demo credentials:</p>
+                  <button 
+                    type="button"
+                    className="demo-btn" 
+                    onClick={() => {
+                        onLogin({ name: 'Dr. Sarah Smith', email: 'sarah@medical.com', role: 'doctor' });
+                    }}
+                  >
+                    🚀 Quick Login as Dr. Sarah Smith
+                  </button>
+                </div>
+              )}
               {isRegistering ? (
                 <p>Already have an account? <button onClick={() => setIsRegistering(false)}>Login now</button></p>
               ) : selectedRole === 'patient' ? (
                 <p>Don't have an account? <button onClick={() => setIsRegistering(true)}>Register for free</button></p>
               ) : selectedRole === 'doctor' ? (
-                <p className="auth-note">Clinical staff can only login with hospital credentials.</p>
+                <p className="auth-note">Clinical staff can only login with system credentials.</p>
               ) : null}
             </div>
           </div>
@@ -1194,27 +1235,34 @@ const PatientRecords: React.FC<{ appointments: UserAppointment[] }> = ({ appoint
 const MedicationView: React.FC<{ prescriptions: Prescription[] }> = ({ prescriptions }) => (
   <div className="medication-detail">
     <div className="meds-header">
-      <h2>Prescriptions & Medications</h2>
-      <p>Active treatment plan and dosage instructions</p>
+      <h2>My Health Prescriptions</h2>
+      <p>Active treatment plans and doctor-recommended medications</p>
     </div>
 
-    <div className="meds-list">
+    <div className="meds-grid">
       {prescriptions.length === 0 ? (
-        <div className="empty-state">No active prescriptions.</div>
+        <div className="empty-state">No medical prescriptions found for this profile.</div>
       ) : (
         prescriptions.map(p => (
-          <div key={p.id} className={`med-card ${p.status}`}>
-            <div className="med-card-side">{p.status === 'active' ? '💊' : '💉'}</div>
-            <div className="med-info">
-              <div className="med-top">
-                <h3>{p.medicineName}</h3>
-                <span className={`med-badge ${p.status}`}>{p.status}</span>
-              </div>
-              <p className="med-desc">{p.dosage} - {p.timing}</p>
-              <div className="med-schedule">
-                <span className="sched-pill last">✅ {p.date}</span>
-              </div>
-              <div className="med-doctor">{p.doctorName}</div>
+          <div key={p.id} className="modern-med-card">
+            <div className={`med-status-indicator ${p.status}`}></div>
+            <div className="med-main-box">
+               <div className="med-row-top">
+                  <div className="m-ico">💊</div>
+                  <div className="m-title-area">
+                     <h3>{p.medicineName}</h3>
+                     <span className="m-spec">{p.dosage} • {p.timing}</span>
+                  </div>
+                  <span className={`m-badge ${p.status}`}>{p.status}</span>
+               </div>
+               <div className="med-doc-sec">
+                  <div className="d-avatar">👨‍⚕️</div>
+                  <div className="d-info">
+                     <strong>{p.doctorName}</strong>
+                     <span>Certified Practitioner</span>
+                  </div>
+                  <div className="m-date-v">{p.date}</div>
+               </div>
             </div>
           </div>
         ))
@@ -1320,8 +1368,7 @@ export default function App() {
     try {
       const res = await axios.post(`${API_URL}/appointments`, { 
         ...app, 
-        patientEmail: currentUser?.email,
-        patientName: currentUser?.name || 'Unknown' 
+        patientEmail: currentUser?.email || 'patient@example.com'
       });
       setAppointments(prev => [res.data, ...prev]);
     } catch (err) {
@@ -1329,13 +1376,33 @@ export default function App() {
     }
   };
 
+  const updateAppointmentStatus = async (id: string, status: UserAppointment['status']) => {
+    try {
+      const res = await axios.patch(`${API_URL}/appointments/${id}`, { status });
+      setAppointments(prev => prev.map(a => a.id === id ? res.data : a));
+      addToast(`Appointment ${status}`, 'success', '📅');
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    }
+  };
+
   const addPrescription = async (pres: Prescription) => {
     try {
-      const res = await axios.post(`${API_URL}/prescriptions`, {
-        ...pres,
-        patientEmail: pres.patientName === currentUser?.name ? currentUser?.email : 'patient@example.com'
-      });
-      setPrescriptions(prev => [res.data, ...prev]);
+        const appRef = appointments.find(a => a.patientName === pres.patientName && a.status !== 'completed');
+        const payload = {
+          ...pres,
+          patientEmail: appRef?.patientEmail || 'patient@example.com'
+        };
+
+        const res = await axios.post(`${API_URL}/prescriptions`, payload);
+        setPrescriptions(prev => [res.data, ...prev]);
+
+        // Automatically complete the appointment if one exists
+        if (appRef) {
+          await updateAppointmentStatus(appRef.id, 'completed');
+        }
+        
+        addToast(`Prescription saved & Appointment completed`, 'success', '💊');
     } catch (err) {
       console.error("Failed to save prescription:", err);
     }
@@ -1357,12 +1424,14 @@ export default function App() {
     return true;
   });
 
-  if (scenario === 'login') return <LoginPage onLogin={(user) => { 
-    localStorage.setItem('mediSync_session', JSON.stringify(user));
-    setCurrentUser(user); 
-    setView(user.role); 
-    setScenario('none'); 
-  }} />;
+  if (scenario === 'login') return (
+    <LoginPage onLogin={(user) => { 
+      setCurrentUser(user); 
+      setView(user.role); 
+      setScenario('none'); 
+      localStorage.setItem('mediSync_session', JSON.stringify(user));
+    }} />
+  );
 
   const activeLabel = getNavLabel(scenario) || 'General Chat';
 
@@ -1448,19 +1517,18 @@ export default function App() {
                 <h2>Notifications Center</h2>
                 <p>Stay updated with your latest health alerts and system activity.</p>
               </div>
-              <div className="app-list">
+              <div className="notifications-modern-list">
                 {notificationHistory.length === 0 ? (
-                   <div className="empty-state">No recent notifications.</div>
+                   <div className="empty-state">No recent health alerts.</div>
                 ) : (
                   notificationHistory.map(n => (
-                    <div key={n.id} className="app-card" style={{ borderLeft: `4px solid ${n.type === 'success' ? '#10B981' : n.type === 'warning' ? '#F59E0B' : '#3B82F6'}` }}>
-                       <div className="app-main">
-                         <div className="p-ava" style={{ background: '#f1f5f9' }}>{n.icon || '🔔'}</div>
-                         <div className="p-det">
-                            <strong>{n.message}</strong>
-                            <span>{new Date(parseInt(n.id)).toLocaleTimeString()} • {new Date(parseInt(n.id)).toLocaleDateString()}</span>
-                         </div>
+                    <div key={n.id} className={`modern-notif-row ${n.type}`}>
+                       <div className="notif-ico">{n.icon || '🔔'}</div>
+                       <div className="notif-main">
+                          <strong>{n.message}</strong>
+                          <span className="notif-time">{new Date(parseInt(n.id)).toLocaleTimeString()} • {new Date(parseInt(n.id)).toLocaleDateString()}</span>
                        </div>
+                       <div className="notif-badge">{n.type}</div>
                     </div>
                   ))
                 )}
