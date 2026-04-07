@@ -31,7 +31,7 @@ export const processUserMessage = async (content: string, scenario: string): Pro
   await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
   const lowerContent = content.toLowerCase();
-  
+
   const botMessage: Message = {
     id: Date.now().toString(),
     type: 'bot',

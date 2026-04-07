@@ -80,66 +80,32 @@ const MOCK_DOCTORS: Doctor[] = [
   { id: '7', name: 'Dr. James Ford', specialization: 'General Physician', avatar: '👨‍⚕️', available: true },
 ];
 
-const INITIAL_PRESCRIPTIONS: Prescription[] = [
-  { id: 'p1', patientName: 'John Doe', doctorName: 'Dr. Sarah Smith', medicineName: 'Lisinopril 10mg', dosage: '1 tablet', timing: 'Morning after breakfast', status: 'active', date: '2026-04-01' },
-];
-
-const INITIAL_APPOINTMENTS: UserAppointment[] = [
-  { id: 'app1', doctorId: '1', doctorName: 'Dr. Aisha Patel', patientName: 'John Doe', date: '2026-04-08', time: '10:30 AM', status: 'confirmed' },
-];
+const INITIAL_PRESCRIPTIONS: Prescription[] = [];
+const INITIAL_APPOINTMENTS: UserAppointment[] = [];
 
 // ─── Mock chart data ──────────────────────────────────────
-const CHART_BP: ChartData = {
-  title: 'Systolic Blood Pressure – Last 7 Days (mmHg)',
-  type: 'line',
-  data: [
-    { name: 'Mon', value: 138 }, { name: 'Tue', value: 132 },
-    { name: 'Wed', value: 140 }, { name: 'Thu', value: 128 },
-    { name: 'Fri', value: 135 }, { name: 'Sat', value: 130 },
-    { name: 'Sun', value: 126 },
-  ],
-};
-const CHART_ADHERENCE: ChartData = {
-  title: 'Medication Adherence % – Last 4 Weeks',
-  type: 'bar',
-  data: [
-    { name: 'Week 1', value: 92 }, { name: 'Week 2', value: 85 },
-    { name: 'Week 3', value: 97 }, { name: 'Week 4', value: 88 },
-  ],
-};
-const CHART_VISITS: ChartData = {
-  title: 'Hospital Visits vs Emergencies (This Week)',
-  type: 'line',
-  data: [
-    { name: 'Mon', value: 412, secondary: 22 },
-    { name: 'Tue', value: 318, secondary: 15 },
-    { name: 'Wed', value: 540, secondary: 41 },
-    { name: 'Thu', value: 225, secondary: 58 },
-    { name: 'Fri', value: 289, secondary: 34 },
-    { name: 'Sat', value: 194, secondary: 49 },
-    { name: 'Sun', value: 247, secondary: 31 },
-  ],
-};
+const CHART_BP: ChartData = { title: 'Systolic Blood Pressure (mmHg)', type: 'line', data: [] };
+const CHART_ADHERENCE: ChartData = { title: 'Medication Adherence %', type: 'bar', data: [] };
+const CHART_VISITS: ChartData = { title: 'Hospital Visits vs Emergencies', type: 'line', data: [] };
 
 // ─── Keyword-based AI response engine ────────────────────
 function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false): string {
   const t = text.toLowerCase();
 
   // ─ Media Validation ─
-  const healthKeywords = /diabetes|hba1c|glucose|insulin|metformin|hypertension|blood pressure|bp|systolic|diastolic|cholesterol|ldl|hdl|triglyceride|lipid|ecg|ekg|arrhythmia|cardiac|heart|palpitation|kidney|creatinine|gfr|renal|urine|protein|doctor|patient|medical|symptom|pain|fever|cough|cold|infection|doctor|prescription|medicine/;
-  
+  const healthKeywords = /diabetes|hba1c|glucose|insulin|metformin|hypertension|blood pressure|bp|systolic|diastolic|cholesterol|ldl|hdl|triglyceride|lipid|ecg|ekg|arrhythmia|cardiac|heart|palpitation|kidney|creatinine|gfr|renal|urine|protein|doctor|patient|medical|symptom|pain|fever|cough|cold|infection|medicine|headache|migraine|injury|hurt|ache|fatigue|sleep|diet|nutrition|weight|scan|xray|report|mri|blood/;
+
   if (isMedia && !healthKeywords.test(t)) {
-    return `⚠️ **Media Verification Failed**\n\nI couldn't detect any health-related information in the uploaded file. Please upload medical reports, prescriptions, or health-related documents for analysis.`;
+    return `⚠️ **Media Verification Failed**\n\nit is not proper medical recipt or things pls upload proper medical recipt`;
   }
 
-  // ─ CHART / INSIGHT requests ─
-  if (/chart|graph|insight|trend|visual|data|statistic/.test(t)) {
-    return '__CHART__';
-  }
-
-  // ─ APPOINTMENT Specialization Request ─
-  if (scenario === 'appointments' && (/schedule|book|need|want|make/.test(t) || t === 'appointments')) {
-    return '__SPECIALIZATIONS__';
+  // ─ Symptom-Specific Media Logic ─
+  if (isMedia && (scenario === 'symptoms' || scenario === 'none')) {
+    if (/heart|cardiac|palpitation|ecg|ekg|bp|blood pressure/.test(t)) return '__CARDIOLOGIST_MATCH__';
+    if (/brain|headache|migraine|nerves|numbness/.test(t)) return '__NEUROLOGIST_MATCH__';
+    if (/skin|rash|acne|itch|dermat/.test(t)) return '__DERMATOLOGIST_MATCH__';
+    if (/fever|cough|cold|infection|stomach|pain/.test(t)) return '__GP_MATCH__';
+    return '__GENERAL_CLINICAL_MATCH__';
   }
 
   // ─ Document / report analysis & Health Queries ─
@@ -171,10 +137,13 @@ function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false)
     if (/sleep|insomnia|tired|fatigue/.test(t))
       return `🩺 **Health Query — Sleep Hygiene & Fatigue**\n\n• **Goal:** 7–9 hours of restorative sleep per night\n\n✅ **Sleep Tips:**\n1. Consistent sleep/wake schedule\n2. No caffeine after 2:00 PM\n3. No blue light (screens) 1 hour before bed\n4. Ensure a cool, dark environment`;
 
+    if (/pain|ache|sore|hurt|injury|hand|leg|back|arm|shoulder|neck/.test(t))
+      return `🩺 **Health Query — Pain & Musculoskeletal Management**\n\n• **Detected Concern:** Physical pain or injury\n\n✅ **Immediate Clinical Solutions:**\n1. **R.I.C.E. Protocol:** Rest the affected area, apply Ice (15 mins), use Compression (if swollen), and Elevation\n2. **Ergonomic Adjustment:** Ensure your posture and workstation are clinically sound to avoid repetitive strain\n3. **Gentle Stretching:** If pain is chronic, light mobility exercises may help, but avoid strenuous activity\n4. **Pain Relief:** Paracetamol or Ibuprofen can be taken as per pharmacy guidance\n\n⚠️ **Urgent Warning:** Seek emergency care if the pain is accompanied by numbness, inability to move the limb, or if the pain is radiating from the chest.`;
+
     if (isMedia) return `📋 **Document Analysed.**\n\nI reviewed the uploaded document and detected medical context. However, I couldn't map it to a specific condition. Please ensure the document is clear or describe the issue in text.`;
 
     if (scenario === 'health_queries') {
-      return `🩺 **Health Query Received**\n\nI'm ready to assist with your medical questions. Please be more specific so I can provide accurate clinical guidance. You can ask about:\n\n• **Symptoms** (e.g., "I have a sharp pain in my side")\n• **Conditions** (e.g., "Tell me about managing diabetes")\n• **Wellness** (e.g., "What is a healthy diet for high BP?")\n\nHow can I support your health journey today?`;
+      return `🩺 **MediSync AI — Health Suggestion**\n\nI have reviewed your concern about **"${text.length > 50 ? text.substring(0, 50) + '...' : text}"**. Based on this clinical query, here are my initial suggestions:\n\n✅ **Actionable Recommendations:**\n1. Monitor for any red-flag symptoms like sudden pain, high fever, or dizziness\n2. Maintain a balanced diet and stay adequately hydrated\n3. Rest is critical for recovery; aim for 7–8 hours of quality sleep\n4. For a definitive clinical plan, please **upload your medical reports** for my verification\n\n⚠️ **Guidance:** This is an automated suggestion for primary care. Please consult our on-duty doctors by **booking an appointment** for a professional physical examination.`;
     }
 
     return `📋 **Healthcare Analysis System**\n\nI reviewed your query but could not detect specific medical keywords. Here's how I can help:\n\n1. Type symptoms for a diagnostic review\n2. Ask health questions (e.g., "how to manage fever")\n3. Upload medical reports for clinical analysis\n4. Switch to a specialized mode using the selector`;
@@ -234,19 +203,52 @@ function getBotResponse(
   const combined = fileContent ? `${text} ${fileContent}` : text;
   const raw = analyzeText(combined, scenario, isMedia);
 
+  const t = combined.toLowerCase();
+
+  // ─ Interactive Routing ─
   if (raw === '__CHART__') {
-    const t = combined.toLowerCase();
     const chart = /bp|blood.?pressure|systolic/.test(t) ? CHART_BP
       : /adherence|medication/.test(t) ? CHART_ADHERENCE
       : CHART_VISITS;
-    const reply = `📊 Here are the data insights you requested. **${chart.title}**.`;
-    return { reply, chart };
+    return { reply: `📊 **Data Insights** — ${chart.title}`, chart };
   }
 
   if (raw === '__SPECIALIZATIONS__') {
     return {
       reply: `📅 **Book an Appointment**\n\nPlease select a medical specialization to see available doctors:`,
       interactive: { type: 'specializations', data: SPECIALIZATIONS }
+    };
+  }
+
+  // ─ Multimedia Symptom Matches ─
+  if (raw === '__CARDIOLOGIST_MATCH__') {
+    return {
+      reply: `🩺 **AI Diagnostic Analysis** — Cardiac indicators detected. I recommend consulting a specialist for a physical examination.`,
+      interactive: { type: 'specializations', data: ['Cardiologist'] }
+    };
+  }
+  if (raw === '__NEUROLOGIST_MATCH__') {
+    return {
+      reply: `🩺 **AI Diagnostic Analysis** — Neurological context detected. Please consult our neuro-experts for further evaluation.`,
+      interactive: { type: 'specializations', data: ['Neurologist'] }
+    };
+  }
+  if (raw === '__DERMATOLOGIST_MATCH__') {
+    return {
+      reply: `🩺 **AI Diagnostic Analysis** — Skin-related concern detected. I've matched you with our dermatology department.`,
+      interactive: { type: 'specializations', data: ['Dermatologist'] }
+    };
+  }
+  if (raw === '__GP_MATCH__') {
+    return {
+      reply: `🩺 **AI Diagnostic Analysis** — Primary care symptoms detected. Please consult an on-duty General Physician.`,
+      interactive: { type: 'specializations', data: ['General Physician'] }
+    };
+  }
+  if (raw === '__GENERAL_CLINICAL_MATCH__') {
+    return {
+      reply: `🩺 **AI Diagnostic Analysis** — Medical context detected. I recommend starting with a General Physician consultation.`,
+      interactive: { type: 'specializations', data: ['General Physician'] }
     };
   }
 
@@ -463,7 +465,8 @@ const Chat: React.FC<{
         { 
           id: 'bot_'+Date.now(), 
           role: 'bot', 
-          text: `✅ **Appointment Confirmed Automatically**\n\nYou have successfully booked an appointment with **${doctor.name}** on **${appDate}** at **${appTime}**. Your profile has been updated in the doctor's clinical queue.` 
+          text: `✅ **Appointment Confirmed Automatically**\n\nYou have successfully booked an appointment with **${doctor.name}** on **${appDate}** at **${appTime}**.\n\n📋 **Record Synchronization:** Your clinical profile and "My Records" timeline have been updated with this new entry.`,
+          interactive: { type: 'link_to_records' }
         }
       ]);
     }
@@ -573,6 +576,14 @@ const Chat: React.FC<{
                       </button>
                     ))
                   )}
+                  {msg.interactive.type === 'link_to_records' && (
+                    <button 
+                      className="interactive-btn active"
+                      onClick={() => setScenario('records')}
+                    >
+                      📋 Go to My Records
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -613,13 +624,12 @@ const Chat: React.FC<{
         <div ref={bottomRef} />
       </div>
 
-      {/* Active scenario badge */}
-      {scenario !== 'none' && scenario !== 'dashboard' && (
-        <div className="active-mode-bar">
-          <span>{SCENARIO_CHIPS.find(c => c.id === scenario)?.icon}&nbsp;
-            {SCENARIO_CHIPS.find(c => c.id === scenario)?.label} Mode
+      {/* Active scenario - Fixed Context Box */}
+      {scenario !== 'none' && scenario !== 'health_queries' && scenario !== 'dashboard' && scenario !== 'login' && (
+        <div className="fixed-scenario-box">
+          <span className="fixed-context-label">
+            {SCENARIO_CHIPS.find(c => c.id === scenario)?.icon} {SCENARIO_CHIPS.find(c => c.id === scenario)?.label}
           </span>
-          <button className="mode-clear" onClick={() => setScenario('none')}>✕</button>
         </div>
       )}
 
@@ -833,8 +843,9 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
 // ─── Doctor Dashboard ─────────────────────────────────────
 const DoctorDashboard: React.FC<{ 
   appointments: UserAppointment[], 
-  onSuggestMedicine: (p: Prescription) => void 
-}> = ({ appointments, onSuggestMedicine }) => {
+  onSuggestMedicine: (p: Prescription) => void,
+  doctorName?: string
+}> = ({ appointments, onSuggestMedicine, doctorName }) => {
   const [activeTab, setActiveTab] = useState<'pending' | 'confirmed' | 'completed' | 'history'>('pending');
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   
@@ -853,7 +864,7 @@ const DoctorDashboard: React.FC<{
     onSuggestMedicine({
       id: 'p' + Date.now(),
       patientName: selectedPatient,
-      doctorName: 'Dr. Sarah Smith',
+      doctorName: doctorName || 'Attending Physician',
       medicineName: medicine,
       dosage,
       timing,
@@ -962,35 +973,10 @@ const PatientRecords: React.FC<{ appointments: UserAppointment[] }> = ({ appoint
     </div>
 
     <div className="records-grid">
-      {/* Vital Stats Card */}
-      <div className="record-card stats">
-        <h3>Vital Parameters (Recent)</h3>
-        <div className="stats-row">
-          <div className="stat-box"><span>Blood Pressure</span><strong>128/84</strong></div>
-          <div className="stat-box"><span>Heart Rate</span><strong>72 bpm</strong></div>
-          <div className="stat-box"><span>Temperature</span><strong>98.6 °F</strong></div>
-          <div className="stat-box"><span>Glucose</span><strong>95 mg/dL</strong></div>
-        </div>
-      </div>
-
-      {/* Active Issues Card */}
+      {/* Active Health Issues Card */}
       <div className="record-card issues">
         <h3>Active Health Issues</h3>
-        <ul className="issue-list">
-          <li className="issue-item high">🔴 Severe Hypertension (Monitoring)</li>
-          <li className="issue-item med">🟡 Vitamin D Deficiency</li>
-          <li className="issue-item low">🟢 Seasonal Allergy (Pollen)</li>
-        </ul>
-      </div>
-
-      {/* Medical Certificates/Documents */}
-      <div className="record-card docs">
-        <h3>Shared Documents</h3>
-        <div className="doc-pills">
-          <div className="doc-pill">📄 Blood_Report_Mar26.pdf</div>
-          <div className="doc-pill">📄 Prescription_Lisinopril.jpg</div>
-          <div className="doc-pill">📄 XRay_Chest_Jan26.png</div>
-        </div>
+        <p className="empty-msg-small">No chronic conditions recorded.</p>
       </div>
 
       {/* My Appointments Detail */}
@@ -999,14 +985,28 @@ const PatientRecords: React.FC<{ appointments: UserAppointment[] }> = ({ appoint
         {appointments.length === 0 ? (
           <p className="empty-msg">No upcoming appointments.</p>
         ) : (
-          <div className="app-rows">
-            {appointments.map(a => (
-              <div key={a.id} className="app-detail-row">
-                <div className="app-date">{a.date}</div>
-                <div className="app-spec">**{a.doctorName}** • Confirmed</div>
+          <>
+            <div className="appt-list-header">
+              <div className="appt-date-box"><span>Date</span></div>
+              <div className="appt-info-box">
+                <span className="appt-doc-header">Attending Doctor</span>
+                <span className="appt-status-header">Status</span>
               </div>
-            ))}
-          </div>
+            </div>
+            <div className="app-rows">
+              {appointments.map(a => (
+                <div key={a.id} className="app-detail-row">
+                  <div className="appt-date-box">
+                    <span className="appt-date-text">{a.date}</span>
+                  </div>
+                  <div className="appt-info-box">
+                    <span className="appt-doc-name">{a.doctorName}</span>
+                    <span className="appt-status-tag">{a.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -1105,8 +1105,24 @@ export default function App() {
       }
     }
   }, []);
-  const [appointments, setAppointments] = useState<UserAppointment[]>(INITIAL_APPOINTMENTS);
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>(INITIAL_PRESCRIPTIONS);
+  // Database Persistence Logic
+  const [appointments, setAppointments] = useState<UserAppointment[]>(() => {
+    const saved = localStorage.getItem('mediSync_appointments');
+    return saved ? JSON.parse(saved) : INITIAL_APPOINTMENTS;
+  });
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>(() => {
+    const saved = localStorage.getItem('mediSync_prescriptions');
+    return saved ? JSON.parse(saved) : INITIAL_PRESCRIPTIONS;
+  });
+
+  // Sync to database
+  useEffect(() => {
+    localStorage.setItem('mediSync_appointments', JSON.stringify(appointments));
+  }, [appointments]);
+
+  useEffect(() => {
+    localStorage.setItem('mediSync_prescriptions', JSON.stringify(prescriptions));
+  }, [prescriptions]);
 
   const addAppointment = (app: UserAppointment) => setAppointments(prev => [{...app, patientName: currentUser?.name || 'Unknown'}, ...prev]);
   const addPrescription = (pres: Prescription) => setPrescriptions(prev => [pres, ...prev]);
@@ -1208,7 +1224,8 @@ export default function App() {
           ) : view === 'doctor' && scenario === 'appointments' ? (
             <DoctorDashboard 
               appointments={appointments.filter(a => a.doctorName === currentUser?.name)} 
-              onSuggestMedicine={(p) => addPrescription({...p, doctorName: currentUser?.name || 'Dr. Smith'})} 
+              doctorName={currentUser?.name}
+              onSuggestMedicine={(p) => addPrescription({...p, doctorName: currentUser?.name || 'Attending Physician'})} 
             />
           ) : view === 'doctor' && scenario === 'records' ? (
             <div className="doctor-panel">
