@@ -651,33 +651,119 @@ const NAV_ITEMS = [
 ];
 
 // ─── Login ────────────────────────────────────────────────
-const LoginPage: React.FC<{ onLogin: (role: 'patient' | 'doctor') => void }> = ({ onLogin }) => (
-  <div className="login-wrapper">
-    <div className="login-panel">
-      <div className="login-hero">
-        <div className="logo-pulse">🤖</div>
-        <h1>MediSync AI</h1>
-        <p>Premium Healthcare Management Ecosystem</p>
-      </div>
-      <div className="role-selector">
-        <button className="role-card patient" onClick={() => onLogin('patient')}>
-          <div className="role-icon">👤</div>
-          <div className="role-meta">
-            <strong>Patient Portal</strong>
-            <span>Check symptoms, analysis & booking</span>
+const LoginPage: React.FC<{ onLogin: (role: 'patient' | 'doctor') => void }> = ({ onLogin }) => {
+  const [selectedRole, setSelectedRole] = useState<'patient' | 'doctor' | null>(null);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+
+  const handleAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRole) {
+      alert("Please select a role first.");
+      return;
+    }
+
+    const savedUsers = JSON.parse(localStorage.getItem('mediSync_users') || '[]');
+
+    if (isRegistering) {
+      if (!name || !email || !password) return;
+      if (savedUsers.find((u: any) => u.email === email)) {
+        alert("Account already exists. Please login.");
+        return;
+      }
+      const newUser = { email, password, name, role: selectedRole };
+      localStorage.setItem('mediSync_users', JSON.stringify([...savedUsers, newUser]));
+      alert("Registration successful! You can now login.");
+      setIsRegistering(false);
+    } else {
+      const user = savedUsers.find((u: any) => u.email === email && u.password === password && u.role === selectedRole);
+      if (user) {
+        onLogin(selectedRole);
+      } else {
+        alert("Invalid credentials / role combination.");
+      }
+    }
+  };
+
+  return (
+    <div className="login-wrapper">
+      <div className="login-dual-panel">
+        {/* Left Side: Role Selector */}
+        <div className="login-left">
+          <div className="login-hero">
+            <div className="logo-pulse">🤖</div>
+            <h1>MediSync AI</h1>
+            <p>Premium Healthcare Ecosystem</p>
           </div>
-        </button>
-        <button className="role-card doctor" onClick={() => onLogin('doctor')}>
-          <div className="role-icon">🩺</div>
-          <div className="role-meta">
-            <strong>Doctor treatment</strong>
-            <span>Manage schedules & patient care</span>
+          <div className="role-stack">
+            <button 
+              className={`role-item patient ${selectedRole === 'patient' ? 'active' : ''}`}
+              onClick={() => { setSelectedRole('patient'); setIsRegistering(false); }}
+            >
+              <div className="role-ico">👤</div>
+              <div className="role-txt">
+                <strong>Patient Access</strong>
+                <span>AI Diagnostics & Portals</span>
+              </div>
+            </button>
+            <button 
+              className={`role-item doctor ${selectedRole === 'doctor' ? 'active' : ''}`}
+              onClick={() => { setSelectedRole('doctor'); setIsRegistering(false); }}
+            >
+              <div className="role-ico">🩺</div>
+              <div className="role-txt">
+                <strong>Medical Treatment</strong>
+                <span>Clinical Charts & Prescribing</span>
+              </div>
+            </button>
           </div>
-        </button>
+        </div>
+
+        {/* Right Side: Auth Form */}
+        <div className="login-right">
+          <div className="auth-container">
+            <h2>{isRegistering ? 'Create Account' : 'Welcome Back'}</h2>
+            <p className="auth-subtitle">
+              {selectedRole ? 
+                `Enter your ${selectedRole} credentials below` : 
+                'Select a role on the left to get started'}
+            </p>
+
+            <form className="auth-form" onSubmit={handleAuth}>
+              {isRegistering && (
+                <div className="input-group">
+                  <label>Full Name</label>
+                  <input placeholder="John Doe" value={name} onChange={e => setName(e.target.value)} required />
+                </div>
+              )}
+              <div className="input-group">
+                <label>Email Address</label>
+                <input type="email" placeholder="user@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
+              </div>
+              <div className="input-group">
+                <label>Password</label>
+                <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+              </div>
+              <button type="submit" disabled={!selectedRole} className="auth-submit-btn">
+                {isRegistering ? 'Register' : 'Login'}
+              </button>
+            </form>
+
+            <div className="auth-toggle">
+              {isRegistering ? (
+                <p>Already have an account? <button onClick={() => setIsRegistering(false)}>Login now</button></p>
+              ) : (
+                <p>Don't have an account? <button onClick={() => setIsRegistering(true)}>Register for free</button></p>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Doctor Dashboard ─────────────────────────────────────
 const DoctorDashboard: React.FC<{ 
