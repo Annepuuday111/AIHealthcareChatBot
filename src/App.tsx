@@ -7,6 +7,10 @@ import {
   CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
 interface Prescription {
   id: string;
   patientName: string;
@@ -80,8 +84,7 @@ const MOCK_DOCTORS: Doctor[] = [
   { id: '7', name: 'Dr. James Ford', specialization: 'General Physician', avatar: '👨‍⚕️', available: true },
 ];
 
-const INITIAL_PRESCRIPTIONS: Prescription[] = [];
-const INITIAL_APPOINTMENTS: UserAppointment[] = [];
+// INITIAL_PRESCRIPTIONS and INITIAL_APPOINTMENTS removed as they are no longer needed.
 
 // ─── Mock chart data ──────────────────────────────────────
 const CHART_BP: ChartData = { title: 'Systolic Blood Pressure (mmHg)', type: 'line', data: [] };
@@ -143,7 +146,7 @@ function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false)
     if (isMedia) return `📋 **Document Analysed.**\n\nI reviewed the uploaded document and detected medical context. However, I couldn't map it to a specific condition. Please ensure the document is clear or describe the issue in text.`;
 
     if (scenario === 'health_queries') {
-      return `🩺 **MediSync AI — Health Suggestion**\n\nI have reviewed your concern about **"${text.length > 50 ? text.substring(0, 50) + '...' : text}"**. Based on this clinical query, here are my initial suggestions:\n\n✅ **Actionable Recommendations:**\n1. Monitor for any red-flag symptoms like sudden pain, high fever, or dizziness\n2. Maintain a balanced diet and stay adequately hydrated\n3. Rest is critical for recovery; aim for 7–8 hours of quality sleep\n4. For a definitive clinical plan, please **upload your medical reports** for my verification\n\n⚠️ **Guidance:** This is an automated suggestion for primary care. Please consult our on-duty doctors by **booking an appointment** for a professional physical examination.`;
+      return `🩺 **AIHealthChatBot — Health Suggestion**\n\nI have reviewed your concern about **"${text.length > 50 ? text.substring(0, 50) + '...' : text}"**. Based on this clinical query, here are my initial suggestions:\n\n✅ **Actionable Recommendations:**\n1. Monitor for any red-flag symptoms like sudden pain, high fever, or dizziness\n2. Maintain a balanced diet and stay adequately hydrated\n3. Rest is critical for recovery; aim for 7–8 hours of quality sleep\n4. For a definitive clinical plan, please **upload your medical reports** for my verification\n\n⚠️ **Guidance:** This is an automated suggestion for primary care. Please consult our on-duty doctors by **booking an appointment** for a professional physical examination.`;
     }
 
     return `📋 **Healthcare Analysis System**\n\nI reviewed your query but could not detect specific medical keywords. Here's how I can help:\n\n1. Type symptoms for a diagnostic review\n2. Ask health questions (e.g., "how to manage fever")\n3. Upload medical reports for clinical analysis\n4. Switch to a specialized mode using the selector`;
@@ -191,7 +194,7 @@ function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false)
   }
 
   // ─ Default ─
-  return `Hello! I'm **MediSync AI** 👋\n\nI'm your intelligent healthcare assistant. Please select one of the specialised modes above or type your health question.\n\nYou can also:\n• 📎 **Upload a medical report** or prescription for analysis\n• 🎤 Use **voice input** to speak your symptoms\n• 📊 Ask for **"data insights"** for visual analytics`;
+  return `Hello! I'm **AIHealthChatBot** 👋\n\nI'm your intelligent healthcare assistant. Please select one of the specialised modes above or type your health question.\n\nYou can also:\n• 📎 **Upload a medical report** or prescription for analysis\n• 🎤 Use **voice input** to speak your symptoms\n• 📊 Ask for **"data insights"** for visual analytics`;
 }
 
 function getBotResponse(
@@ -702,39 +705,30 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
 
-  const handleAuth = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRole) return;
 
-    // Simulate Database Check & Seed
-    let savedUsers = JSON.parse(localStorage.getItem('mediSync_users') || '[]');
-    
-    // Seed default doctor if not exists
-    if (!savedUsers.find((u: any) => u.role === 'doctor')) {
-      const hospitalDoctor = { email: 'doc@hospital.com', password: 'password123', name: 'Dr. Sarah Smith', role: 'doctor' };
-      savedUsers.push(hospitalDoctor);
-      localStorage.setItem('mediSync_users', JSON.stringify(savedUsers));
-    }
-
-    if (isRegistering) {
-      if (!name || !email || !password) return;
-      if (savedUsers.find((u: any) => u.email === email)) {
-        alert("Clinical Record Error: An account with this email already exists in our database.");
-        return;
-      }
-      const newUser = { email, password, name, role: selectedRole };
-      localStorage.setItem('mediSync_users', JSON.stringify([...savedUsers, newUser]));
-      alert("Database Updated: Patient registration successful! You can now proceed to login.");
-      setIsRegistering(false);
-      // Reset form
-      setEmail(''); setPassword(''); setName('');
-    } else {
-      const user = savedUsers.find((u: any) => u.email === email && u.password === password && u.role === selectedRole);
-      if (user) {
-        onLogin(user);
+    try {
+      if (isRegistering) {
+        if (!name || !email || !password) return;
+        
+        await axios.post(`${API_URL}/register`, { 
+          name, 
+          email, 
+          password, 
+          role: selectedRole 
+        });
+        
+        alert("Clinical Record Success: Your account has been created in AIHealthChatBot database.");
+        setIsRegistering(false);
+        setEmail(''); setPassword(''); setName('');
       } else {
-        alert(`Authentication Failed: Could not find valid ${selectedRole} credentials in our records.`);
+        const response = await axios.post(`${API_URL}/login`, { email, password, role: selectedRole });
+        onLogin(response.data.user);
       }
+    } catch (err: any) {
+      alert(`Authentication Error: ${err.response?.data?.message || 'Connection failed'}`);
     }
   };
 
@@ -747,7 +741,7 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
             <div className="logo-pulse-box">
               <div className="logo-pulse">🩺</div>
             </div>
-            <h1>MediSync AI</h1>
+            <h1>AIHealthChatBot</h1>
             <p>Premium Healthcare Ecosystem</p>
           </div>
           <div className="role-stack">
@@ -1105,27 +1099,51 @@ export default function App() {
       }
     }
   }, []);
+  const [appointments, setAppointments] = useState<UserAppointment[]>([]);
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+
   // Database Persistence Logic
-  const [appointments, setAppointments] = useState<UserAppointment[]>(() => {
-    const saved = localStorage.getItem('mediSync_appointments');
-    return saved ? JSON.parse(saved) : INITIAL_APPOINTMENTS;
-  });
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>(() => {
-    const saved = localStorage.getItem('mediSync_prescriptions');
-    return saved ? JSON.parse(saved) : INITIAL_PRESCRIPTIONS;
-  });
-
-  // Sync to database
   useEffect(() => {
-    localStorage.setItem('mediSync_appointments', JSON.stringify(appointments));
-  }, [appointments]);
+    if (currentUser) {
+      const fetchData = async () => {
+        try {
+          const appRes = await axios.get(`${API_URL}/appointments/${currentUser.email}?role=${currentUser.role}&name=${currentUser.name}`);
+          setAppointments(appRes.data);
 
-  useEffect(() => {
-    localStorage.setItem('mediSync_prescriptions', JSON.stringify(prescriptions));
-  }, [prescriptions]);
+          const presRes = await axios.get(`${API_URL}/prescriptions/${currentUser.email}`);
+          setPrescriptions(presRes.data);
+        } catch (err) {
+          console.error("Error fetching data from MongoDB:", err);
+        }
+      };
+      fetchData();
+    }
+  }, [currentUser]);
 
-  const addAppointment = (app: UserAppointment) => setAppointments(prev => [{...app, patientName: currentUser?.name || 'Unknown'}, ...prev]);
-  const addPrescription = (pres: Prescription) => setPrescriptions(prev => [pres, ...prev]);
+  const addAppointment = async (app: UserAppointment) => {
+    try {
+      const res = await axios.post(`${API_URL}/appointments`, { 
+        ...app, 
+        patientEmail: currentUser?.email,
+        patientName: currentUser?.name || 'Unknown' 
+      });
+      setAppointments(prev => [res.data, ...prev]);
+    } catch (err) {
+      console.error("Failed to book appointment:", err);
+    }
+  };
+
+  const addPrescription = async (pres: Prescription) => {
+    try {
+      const res = await axios.post(`${API_URL}/prescriptions`, {
+        ...pres,
+        patientEmail: pres.patientName === currentUser?.name ? currentUser?.email : 'patient@example.com'
+      });
+      setPrescriptions(prev => [res.data, ...prev]);
+    } catch (err) {
+      console.error("Failed to save prescription:", err);
+    }
+  };
 
   const getNavLabel = (id: Scenario) => {
     if (id === 'records') return view === 'doctor' ? 'Patient Records' : 'My Records';
@@ -1157,7 +1175,7 @@ export default function App() {
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <span className="brand-icon">⚕️</span>
-          <span className="brand-name">MediSync AI</span>
+          <span className="brand-name">AIHealthChatBot</span>
         </div>
         <nav className="sidebar-nav">
           <p className="nav-group-label">NAVIGATION</p>

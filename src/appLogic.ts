@@ -1,4 +1,4 @@
-import { Message, InsightData } from './types';
+import type { Message, InsightData } from './types';
 
 // Mock data generator for insights
 const generateVitalsData = (): InsightData => ({

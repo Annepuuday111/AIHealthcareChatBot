@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, MicOff, Paperclip, Bot, User } from 'lucide-react';
-import { Message, InsightData } from '../types';
+import type { Message, InsightData } from '../types';
 import { processUserMessage } from '../appLogic';
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -11,7 +11,7 @@ interface ChatProps {
   scenario: string;
 }
 
-const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
 if (recognition) {
@@ -55,7 +55,7 @@ const Chat: React.FC<ChatProps> = ({ scenario }) => {
     {
       id: '1',
       type: 'bot',
-      content: `Welcome to MediSync AI. I am your healthcare assistant. You are currently in the ${scenario} view. How can I help you today?`
+      content: `Welcome to AIHealthChatBot. I am your healthcare assistant. You are currently in the ${scenario} view. How can I help you today?`
     }
   ]);
   const [input, setInput] = useState('');
