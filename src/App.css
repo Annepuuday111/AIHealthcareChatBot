@@ -185,10 +185,25 @@ html, body, #root {
   gap: 1.25rem;
   scrollbar-width: thin;
   scrollbar-color: #CBD5E1 transparent;
+  min-height: 0; /* Critical for flex box overflow control */
 }
 
 .messages-scroll > *:first-child {
   margin-top: auto;
+}
+
+.input-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.625rem;
+  padding: 0.875rem 1.25rem;
+  background: #fff;
+  border-top: 1px solid #E2E8F0;
+  flex-shrink: 0;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 /* ─── MESSAGE ROWS ────────────────────────────────────── */
@@ -740,17 +755,7 @@ html, body, #root {
   40%            { transform: scale(1);   opacity: 1; }
 }
 
-/* ─── INPUT BAR ───────────────────────────────────────── */
-.input-bar {
-  display: flex;
-  align-items: flex-end; /* Keeps placeholder and buttons docked to the bottom */
-  gap: 0.625rem;
-  padding: 0.875rem 1.25rem;
-  background: #fff;
-  border-top: 1px solid #E2E8F0;
-  flex-shrink: 0;
-  box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
-}
+/* ─── CHAT TEXTAREA ───────────────────────────────────────── */
 
 .chat-textarea {
   flex: 1;
