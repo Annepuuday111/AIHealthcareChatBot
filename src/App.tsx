@@ -21,6 +21,12 @@ interface Prescription {
 // ─── Types ────────────────────────────────────────────────
 type Scenario = 'none' | 'records' | 'symptoms' | 'appointments' | 'medication' | 'dashboard' | 'doctorView' | 'login';
 
+interface UserAccount {
+  name: string;
+  email: string;
+  role: 'patient' | 'doctor';
+}
+
 interface Doctor {
   id: string;
   name: string;
@@ -349,9 +355,10 @@ const Chat: React.FC<{
   scenario: Scenario,
   setScenario: (s: Scenario) => void,
   appointments: UserAppointment[],
-  addAppointment: (app: UserAppointment) => void
+  addAppointment: (app: UserAppointment) => void,
+  currentUser: UserAccount | null
 }> = ({
-  scenario, setScenario, appointments, addAppointment
+  scenario, setScenario, appointments, addAppointment, currentUser
 }) => {
   const WELCOME: Message = {
     id: 'welcome',
@@ -422,7 +429,7 @@ const Chat: React.FC<{
         id: 'app_' + Date.now(),
         doctorId: doctor.id,
         doctorName: doctor.name,
-        patientName: 'John Doe', // Mock patient
+        patientName: currentUser?.name || 'Unknown Patient',
         date: new Date().toISOString().split('T')[0],
         time: '11:00 AM',
         status: 'pending'
@@ -651,7 +658,7 @@ const NAV_ITEMS = [
 ];
 
 // ─── Login ────────────────────────────────────────────────
-const LoginPage: React.FC<{ onLogin: (role: 'patient' | 'doctor') => void }> = ({ onLogin }) => {
+const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin }) => {
   const [selectedRole, setSelectedRole] = useState<'patient' | 'doctor' | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
@@ -660,29 +667,36 @@ const LoginPage: React.FC<{ onLogin: (role: 'patient' | 'doctor') => void }> = (
 
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRole) {
-      alert("Please select a role first.");
-      return;
-    }
+    if (!selectedRole) return;
 
-    const savedUsers = JSON.parse(localStorage.getItem('mediSync_users') || '[]');
+    // Simulate Database Check & Seed
+    let savedUsers = JSON.parse(localStorage.getItem('mediSync_users') || '[]');
+    
+    // Seed default doctor if not exists
+    if (!savedUsers.find((u: any) => u.role === 'doctor')) {
+      const hospitalDoctor = { email: 'doc@hospital.com', password: 'password123', name: 'Dr. Sarah Smith', role: 'doctor' };
+      savedUsers.push(hospitalDoctor);
+      localStorage.setItem('mediSync_users', JSON.stringify(savedUsers));
+    }
 
     if (isRegistering) {
       if (!name || !email || !password) return;
       if (savedUsers.find((u: any) => u.email === email)) {
-        alert("Account already exists. Please login.");
+        alert("Clinical Record Error: An account with this email already exists in our database.");
         return;
       }
       const newUser = { email, password, name, role: selectedRole };
       localStorage.setItem('mediSync_users', JSON.stringify([...savedUsers, newUser]));
-      alert("Registration successful! You can now login.");
+      alert("Database Updated: Patient registration successful! You can now proceed to login.");
       setIsRegistering(false);
+      // Reset form
+      setEmail(''); setPassword(''); setName('');
     } else {
       const user = savedUsers.find((u: any) => u.email === email && u.password === password && u.role === selectedRole);
       if (user) {
-        onLogin(selectedRole);
+        onLogin(user);
       } else {
-        alert("Invalid credentials / role combination.");
+        alert(`Authentication Failed: Could not find valid ${selectedRole} credentials in our records.`);
       }
     }
   };
@@ -1045,13 +1059,14 @@ const DoctorOverallDashboard: React.FC<{
 
 // ─── Root App ─────────────────────────────────────────────
 export default function App() {
-  const [view, setView] = useState<'login' | 'patient' | 'doctor'>('login');
-  const [scenario, setScenario] = useState<Scenario>('none');
+  const [view, setView] = useState<'patient' | 'doctor'>('patient');
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [scenario, setScenario] = useState<Scenario>('login');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [appointments, setAppointments] = useState<UserAppointment[]>(INITIAL_APPOINTMENTS);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>(INITIAL_PRESCRIPTIONS);
 
-  const addAppointment = (app: UserAppointment) => setAppointments(prev => [app, ...prev]);
+  const addAppointment = (app: UserAppointment) => setAppointments(prev => [{...app, patientName: currentUser?.name || 'Unknown'}, ...prev]);
   const addPrescription = (pres: Prescription) => setPrescriptions(prev => [pres, ...prev]);
 
   const getNavLabel = (id: Scenario) => {
@@ -1070,7 +1085,7 @@ export default function App() {
     return true;
   });
 
-  if (view === 'login') return <LoginPage onLogin={setView} />;
+  if (scenario === 'login') return <LoginPage onLogin={(user) => { setCurrentUser(user); setView(user.role); setScenario('none'); }} />;
 
   const activeLabel = getNavLabel(scenario) || 'General Chat';
 
@@ -1107,7 +1122,7 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-footer">
-          <button className="logout-action" onClick={() => { setView('login'); setScenario('none'); }}>
+          <button className="logout-action" onClick={() => { setView('patient'); setScenario('login'); setCurrentUser(null); }}>
             <span>🚪</span> Logout
           </button>
         </div>
@@ -1123,17 +1138,26 @@ export default function App() {
           </div>
           <div className="topbar-right">
              <div className="user-pill">
-              <div className="user-ava">{view === 'doctor' ? 'D' : 'P'}</div>
-              <span className="user-name">{view === 'doctor' ? 'Dr. Sarah Smith' : 'Patient User'}</span>
+              <div className="user-ava">
+                {currentUser?.name.charAt(0) || (view === 'doctor' ? 'D' : 'P')}
+              </div>
+              <span className="user-name">
+                {currentUser?.name || (view === 'doctor' ? 'Medical Professional' : 'Patient User')}
+              </span>
             </div>
           </div>
         </header>
 
         <main className="content-scroll">
           {view === 'doctor' && scenario === 'none' ? (
-            <DoctorOverallDashboard appointments={appointments} />
+            <DoctorOverallDashboard 
+              appointments={appointments.filter(a => a.doctorName === currentUser?.name)} 
+            />
           ) : view === 'doctor' && scenario === 'appointments' ? (
-            <DoctorDashboard appointments={appointments} onSuggestMedicine={addPrescription} />
+            <DoctorDashboard 
+              appointments={appointments.filter(a => a.doctorName === currentUser?.name)} 
+              onSuggestMedicine={(p) => addPrescription({...p, doctorName: currentUser?.name || 'Dr. Smith'})} 
+            />
           ) : view === 'doctor' && scenario === 'records' ? (
             <div className="doctor-panel">
                <div className="doc-header">
@@ -1141,7 +1165,7 @@ export default function App() {
                 <p>Search and manage patient health documentation.</p>
                </div>
                <div className="app-list">
-                 {Array.from(new Set(appointments.map(a => a.patientName))).map(pName => (
+                 {Array.from(new Set(appointments.filter(a => a.doctorName === currentUser?.name).map(a => a.patientName))).map(pName => (
                    <div key={pName} className="app-card">
                       <div className="app-main">
                         <div className="p-ava">{pName.charAt(0)}</div>
@@ -1164,6 +1188,7 @@ export default function App() {
               setScenario={setScenario} 
               appointments={appointments} 
               addAppointment={addAppointment} 
+              currentUser={currentUser}
             />
           )}
         </main>
