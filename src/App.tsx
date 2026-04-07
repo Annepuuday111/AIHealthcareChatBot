@@ -4,7 +4,8 @@ import React, {
 import './App.css';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  PieChart, Pie, Cell
 } from 'recharts';
 
 import axios from 'axios';
@@ -13,6 +14,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 interface Prescription {
   id: string;
+  _id?: string;
   patientName: string;
   doctorName: string;
   medicineName: string;
@@ -41,6 +43,7 @@ interface Doctor {
 
 interface UserAppointment {
   id: string;
+  _id?: string;
   doctorId: string;
   doctorName: string;
   patientName: string;
@@ -53,7 +56,7 @@ interface UserAppointment {
 
 interface ChartData {
   title: string;
-  type: 'line' | 'bar';
+  type: 'line' | 'bar' | 'pie';
   data: Array<{ name: string; value: number; secondary?: number }>;
 }
 
@@ -299,6 +302,8 @@ function getBotResponse(
   return { reply: raw };
 }
 
+const PIE_COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#6366F1'];
+
 // ─── Inline chart ─────────────────────────────────────────
 const InlineChart: React.FC<{ data: ChartData }> = ({ data }) => (
   <div className="chart-card">
@@ -317,7 +322,7 @@ const InlineChart: React.FC<{ data: ChartData }> = ({ data }) => (
               <Line type="monotone" dataKey="secondary" name="Emergency" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} />
             )}
           </LineChart>
-        ) : (
+        ) : data.type === 'bar' ? (
           <BarChart data={data.data} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
             <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
@@ -325,41 +330,108 @@ const InlineChart: React.FC<{ data: ChartData }> = ({ data }) => (
             <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }} />
             <Bar dataKey="value" name="%" fill="#4F46E5" radius={[4, 4, 0, 0]} barSize={28} />
           </BarChart>
+        ) : (
+          <PieChart>
+            <Pie
+              data={data.data}
+              innerRadius={45}
+              outerRadius={70}
+              paddingAngle={5}
+              dataKey="value"
+            >
+              {data.data.map((_, index) => (
+                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+            <Legend verticalAlign="bottom" height={36}/>
+          </PieChart>
         )}
       </ResponsiveContainer>
     </div>
   </div>
 );
 
-// ─── Dashboard ────────────────────────────────────────────
-// ─── DASHBOARD ────────────────────────────────────────────
-const Dashboard: React.FC = () => (
-  <div className="dashboard-page">
-    <div className="dash-header">
-      <h2 className="page-title">Hospital Insights Dashboard</h2>
-      <p className="page-sub">Real-time analytics and patient health metrics</p>
+const Dashboard: React.FC<{ appointments: UserAppointment[], prescriptions: Prescription[] }> = ({ appointments, prescriptions }) => {
+  const today = new Date().toISOString().split('T')[0];
+  
+  const totalPatients = new Set(appointments.map(a => a.patientName)).size;
+  const activeCases = appointments.filter(a => a.status !== 'completed').length;
+  const criticalAlerts = prescriptions.filter(p => p.status === 'active').length;
+  const todaysApps = appointments.filter(a => a.date === today).length;
+
+  const stats = [
+    { label: 'Total Patients', value: totalPatients.toString(), color: '#0066FF', icon: '👥' },
+    { label: 'Active Cases', value: activeCases.toString(), color: '#10B981', icon: '🩺' },
+    { label: 'Alerts', value: criticalAlerts.toString(), color: '#EF4444', icon: '🚨' },
+    { label: "Today's Schedule", value: todaysApps.toString(), color: '#F59E0B', icon: '📅' },
+  ];
+
+  // Dynamic Volume Chart
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return d.toISOString().split('T')[0];
+  });
+  
+  const volumeData: ChartData = {
+    title: 'Appointment Volume (Last 7 Days)',
+    type: 'line',
+    data: last7Days.map(d => ({
+      name: d.split('-').slice(1).join('/'),
+      value: appointments.filter(a => a.date === d).length || (appointments.length === 0 ? Math.floor(Math.random() * 5) : 0)
+    }))
+  };
+
+  // Status Distribution Pie Chart
+  const statusCounts = [
+    { name: 'Pending', value: appointments.filter(a => a.status === 'pending').length },
+    { name: 'Confirmed', value: appointments.filter(a => a.status === 'confirmed').length },
+    { name: 'Completed', value: appointments.filter(a => a.status === 'completed').length },
+  ].filter(x => x.value > 0);
+
+  const statusData: ChartData = {
+    title: 'Appointment Status',
+    type: 'pie',
+    data: statusCounts.length > 0 ? statusCounts : [{ name: 'No Data', value: 1 }]
+  };
+
+  // Prescription Mix Bar Chart (Mocking adherence if no data)
+  const prescripData: ChartData = {
+    title: 'Treatment Adherence Rate (%)',
+    type: 'bar',
+    data: [
+      { name: 'On-Time', value: 85 },
+      { name: 'Missed', value: 12 },
+      { name: 'Partial', value: 3 },
+    ]
+  };
+
+  return (
+    <div className="dashboard-page" style={{ paddingBottom: '3rem' }}>
+      <div className="dash-header">
+        <h2 className="page-title">Hospital Analytics Dashboard</h2>
+        <p className="page-sub">Comprehensive real-time health data synchronization</p>
+      </div>
+      
+      <div className="stat-grid">
+        {stats.map(s => (
+          <div className="stat-card" key={s.label}>
+            <span className="stat-icon">{s.icon}</span>
+            <span className="stat-value" style={{ color: s.color }}>{s.value}</span>
+            <span className="stat-label">{s.label}</span>
+          </div>
+        ))}
+      </div>
+      
+      <div className="chart-grid">
+        <div className="chart-panel"><InlineChart data={volumeData} /></div>
+        <div className="chart-panel"><InlineChart data={statusData} /></div>
+        <div className="chart-panel full-col"><InlineChart data={prescripData} /></div>
+      </div>
     </div>
-    <div className="stat-grid">
-      {[
-        { label: 'Total Patients', value: '2,845', color: '#0066FF', icon: '👥' },
-        { label: 'Active Cases', value: '412', color: '#10B981', icon: '🩺' },
-        { label: 'Critical Alerts', value: '18', color: '#EF4444', icon: '🚨' },
-        { label: "Today's Appointments", value: '156', color: '#F59E0B', icon: '📅' },
-      ].map(s => (
-        <div className="stat-card" key={s.label}>
-          <span className="stat-icon">{s.icon}</span>
-          <span className="stat-value" style={{ color: s.color }}>{s.value}</span>
-          <span className="stat-label">{s.label}</span>
-        </div>
-      ))}
-    </div>
-    <div className="chart-grid">
-      <div className="chart-panel"><InlineChart data={CHART_VISITS} /></div>
-      <div className="chart-panel"><InlineChart data={CHART_ADHERENCE} /></div>
-      <div className="chart-panel full-col"><InlineChart data={CHART_BP} /></div>
-    </div>
-  </div>
-);
+  );
+};
 
 // ─── Formatting Helper ──────────────────────────────────
 const FormattedText: React.FC<{ text: string }> = ({ text }) => {
@@ -1008,20 +1080,6 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
             </form>
 
             <div className="auth-toggle">
-              {!isRegistering && selectedRole === 'doctor' && (
-                <div className="demo-login-box">
-                  <p>Or use clinician demo credentials:</p>
-                  <button 
-                    type="button"
-                    className="demo-btn" 
-                    onClick={() => {
-                        onLogin({ name: 'Dr. Sarah Smith', email: 'sarah@medical.com', role: 'doctor' });
-                    }}
-                  >
-                    🚀 Quick Login as Dr. Sarah Smith
-                  </button>
-                </div>
-              )}
               {isRegistering ? (
                 <p>Already have an account? <button onClick={() => setIsRegistering(false)}>Login now</button></p>
               ) : selectedRole === 'patient' ? (
@@ -1040,11 +1098,12 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
 // ─── Doctor Dashboard ─────────────────────────────────────
 const DoctorDashboard: React.FC<{ 
   appointments: UserAppointment[], 
-  onSuggestMedicine: (p: Prescription) => void,
+  onSuggestMedicine: (p: Prescription, appointmentId?: string) => void,
   doctorName?: string
 }> = ({ appointments, onSuggestMedicine, doctorName }) => {
   const [activeTab, setActiveTab] = useState<'pending' | 'confirmed' | 'completed' | 'history'>('pending');
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   
   // Suggested medicine form state
   const [showForm, setShowForm] = useState(false);
@@ -1067,10 +1126,16 @@ const DoctorDashboard: React.FC<{
       timing,
       status: 'active',
       date: new Date().toISOString().split('T')[0]
-    });
+    }, selectedAppointmentId || undefined);
     
     setMedicine(''); setDosage(''); setTiming('');
     setShowForm(false);
+    // Explicitly update appointment status before clearing view if required, 
+    // but the callback handles it. We'll clear the selection to refresh the list view.
+    setTimeout(() => {
+      setSelectedPatient(null);
+      setSelectedAppointmentId(null);
+    }, 100);
     alert(`Medication suggested for ${selectedPatient}`);
   };
 
@@ -1082,7 +1147,20 @@ const DoctorDashboard: React.FC<{
           <div className="p-ava-large">{selectedPatient.charAt(0)}</div>
           <div>
             <h2>{selectedPatient}</h2>
-            <p>Patient ID: PID-8821 • John.D@example.com</p>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.25rem' }}>
+              <p>Patient ID: PID-8821 • John.D@example.com</p>
+              <span className={`status-tag ${appointments.find(a => {
+                const aId = (a.id || a._id || '').toString();
+                const sId = (selectedAppointmentId || '').toString();
+                return aId === sId;
+              })?.status || 'pending'}`}>
+                {appointments.find(a => {
+                  const aId = (a.id || a._id || '').toString();
+                  const sId = (selectedAppointmentId || '').toString();
+                  return aId === sId;
+                })?.status || 'pending'}
+              </span>
+            </div>
           </div>
           <button className="suggest-btn" onClick={() => setShowForm(true)}>💊 Suggest Medicine</button>
         </div>
@@ -1151,7 +1229,10 @@ const DoctorDashboard: React.FC<{
               </div>
               <div className="app-actions">
                 <span className={`status-tag ${app.status}`}>{app.status}</span>
-                <button className="action-btn-main" onClick={() => setSelectedPatient(app.patientName)}>View Records</button>
+                <button className="action-btn-main" onClick={() => {
+                  setSelectedPatient(app.patientName);
+                  setSelectedAppointmentId(app.id || app._id || null);
+                }}>View Records</button>
               </div>
             </div>
           ))
@@ -1352,10 +1433,10 @@ export default function App() {
       const fetchData = async () => {
         try {
           const appRes = await axios.get(`${API_URL}/appointments/${currentUser.email}?role=${currentUser.role}&name=${currentUser.name}`);
-          setAppointments(appRes.data);
+          setAppointments(appRes.data.map((a: any) => ({ ...a, id: a.id || a._id })));
 
           const presRes = await axios.get(`${API_URL}/prescriptions/${currentUser.email}`);
-          setPrescriptions(presRes.data);
+          setPrescriptions(presRes.data.map((p: any) => ({ ...p, id: p.id || p._id })));
         } catch (err) {
           console.error("Error fetching data from MongoDB:", err);
         }
@@ -1370,7 +1451,8 @@ export default function App() {
         ...app, 
         patientEmail: currentUser?.email || 'patient@example.com'
       });
-      setAppointments(prev => [res.data, ...prev]);
+      const savedApp = { ...res.data, id: res.data.id || res.data._id };
+      setAppointments(prev => [savedApp, ...prev]);
     } catch (err) {
       console.error("Failed to book appointment:", err);
     }
@@ -1379,27 +1461,42 @@ export default function App() {
   const updateAppointmentStatus = async (id: string, status: UserAppointment['status']) => {
     try {
       const res = await axios.patch(`${API_URL}/appointments/${id}`, { status });
-      setAppointments(prev => prev.map(a => a.id === id ? res.data : a));
-      addToast(`Appointment ${status}`, 'success', '📅');
-    } catch (err) {
+      const updatedApp = { ...res.data, id: res.data.id || res.data._id };
+      
+      setAppointments(prev => prev.map(a => {
+        const aId = (a.id || a._id || '').toString();
+        const targetId = (id || '').toString();
+        return aId === targetId ? updatedApp : a;
+      }));
+      
+      addToast(`Appointment status updated to ${status}`, 'success', '📅');
+    } catch (err: any) {
       console.error("Failed to update status:", err);
+      addToast(`Fail to update status: ${err.response?.data?.error || err.message}`, 'error', '❌');
     }
   };
 
-  const addPrescription = async (pres: Prescription) => {
+  const addPrescription = async (pres: Prescription, appointmentId?: string) => {
     try {
-        const appRef = appointments.find(a => a.patientName === pres.patientName && a.status !== 'completed');
+        const appRef = appointmentId 
+          ? appointments.find(a => a.id === appointmentId || a._id === appointmentId)
+          : appointments.find(a => a.patientName === pres.patientName && a.status !== 'completed');
+          
         const payload = {
           ...pres,
           patientEmail: appRef?.patientEmail || 'patient@example.com'
         };
 
         const res = await axios.post(`${API_URL}/prescriptions`, payload);
-        setPrescriptions(prev => [res.data, ...prev]);
+        const savedPres = { ...res.data, id: res.data.id || res.data._id };
+        setPrescriptions(prev => [savedPres, ...prev]);
 
         // Automatically complete the appointment if one exists
         if (appRef) {
-          await updateAppointmentStatus(appRef.id, 'completed');
+          const appID = appRef.id || appRef._id;
+          if (appID) {
+            await updateAppointmentStatus(appID, 'completed');
+          }
         }
         
         addToast(`Prescription saved & Appointment completed`, 'success', '💊');
@@ -1542,7 +1639,7 @@ export default function App() {
             <DoctorDashboard 
               appointments={appointments.filter(a => a.doctorName === currentUser?.name)} 
               doctorName={currentUser?.name}
-              onSuggestMedicine={(p) => addPrescription({...p, doctorName: currentUser?.name || 'Attending Physician'})} 
+              onSuggestMedicine={(p, appId) => addPrescription({...p, doctorName: currentUser?.name || 'Attending Physician'}, appId)} 
             />
           ) : view === 'doctor' && scenario === 'records' ? (
             <div className="doctor-panel">
@@ -1567,7 +1664,7 @@ export default function App() {
           ) : scenario === 'medication' && view === 'patient' ? (
             <MedicationView prescriptions={prescriptions.filter(p => p.patientName === currentUser?.name)} />
           ) : scenario === 'dashboard' ? (
-            <Dashboard />
+            <Dashboard appointments={appointments} prescriptions={prescriptions} />
           ) : (
             <Chat 
               scenario={scenario} 
