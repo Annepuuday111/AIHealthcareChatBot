@@ -74,6 +74,7 @@ interface Toast {
   message: string;
   type: 'success' | 'info' | 'warning' | 'error';
   icon?: string;
+  date: string;
 }
 
 // ─── Mock Data ────────────────────────────────────────────
@@ -1402,7 +1403,8 @@ export default function App() {
   
   const addToast = (message: string, type: Toast['type'] = 'info', icon?: string) => {
     const id = Date.now().toString();
-    const newToast = { id, message, type, icon };
+    const date = new Date().toISOString();
+    const newToast = { id, message, type, icon, date };
     setToasts(prev => [...prev, newToast]);
     setNotificationHistory(prev => [newToast, ...prev].slice(0, 50)); // Keep last 50
     setTimeout(() => {
@@ -1440,13 +1442,24 @@ export default function App() {
 
           // Fetch Persistent Notifications
           const notifRes = await axios.get(`${API_URL}/notifications/${currentUser.email}`);
-          setNotificationHistory(notifRes.data.map((n: any) => ({
+          const fetchedNotifs = notifRes.data.map((n: any) => ({
             id: n._id,
             message: n.message,
             type: n.type,
             icon: n.icon || '🔔',
             date: n.date
-          })));
+          }));
+
+          // Check for new notifications to trigger toast
+          if (notificationHistory.length > 0 && fetchedNotifs.length > 0) {
+            const latestOld = notificationHistory[0].id;
+            const newOnes = fetchedNotifs.filter((fn: any) => fn.id !== latestOld && new Date(fn.date) > new Date(notificationHistory[0].date));
+            newOnes.forEach((n: any) => {
+              addToast(n.message, n.type, n.icon);
+            });
+          }
+
+          setNotificationHistory(fetchedNotifs);
         } catch (err) {
           console.error("Error fetching data from MongoDB:", err);
         }
@@ -1656,7 +1669,9 @@ export default function App() {
                        <div className="notif-ico">{n.icon || '🔔'}</div>
                        <div className="notif-main">
                           <strong>{n.message}</strong>
-                          <span className="notif-time">{new Date(parseInt(n.id)).toLocaleTimeString()} • {new Date(parseInt(n.id)).toLocaleDateString()}</span>
+                          <span className="notif-time">
+                            {new Date(n.date).toLocaleTimeString()} • {new Date(n.date).toLocaleDateString()}
+                          </span>
                        </div>
                        <div className="notif-badge">{n.type}</div>
                     </div>
