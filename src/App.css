@@ -873,11 +873,16 @@ html, body, #root {
   .role-item { padding: 1rem; }
   .auth-container h2 { font-size: 2rem; text-align: center; }
 
-  /* Doctor Dashboard Mobile */
+  /* Doctor & Patient Dashboard Mobile */
   .doctor-panel { padding: 1rem; }
   .doc-tabs { flex-wrap: wrap; }
   .app-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
   .app-actions { width: 100%; justify-content: space-between; }
+  .stats-row { grid-template-columns: 1fr; }
+  .patient-stats-grid { grid-template-columns: 1fr; }
+  .patient-profile-header { flex-direction: column; text-align: center; gap: 1rem; }
+  .suggest-btn { margin-left: 0; width: 100%; }
+  .suggestion-form { width: 100%; padding: 1.5rem; }
 }
 /* ─── PATIENT RECORDS DETAIL ────────────────────────────── */
 .records-detail {
