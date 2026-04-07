@@ -942,7 +942,7 @@ export default function App() {
               onClick={() => { setScenario('none'); setSidebarOpen(false); }}
             >
               <span className="nav-icon">🩺</span>
-              Doctor Portal Home
+              Dashboard
             </button>
           )}
           {filteredNavItems.map(n => (
