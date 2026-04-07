@@ -821,7 +821,7 @@ const Chat: React.FC<{
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={listening ? '🎤 Listening…' : 'Type a message, or upload a document…'}
+          placeholder={listening ? '🎤 Listening…' : 'Type a Message…'}
         />
 
         {/* Voice input */}
