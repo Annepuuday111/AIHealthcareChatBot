@@ -1122,7 +1122,12 @@ const DoctorDashboard: React.FC<{
 
 // ─── Patient Records (Detail View) ────────────────────────
 const PatientRecords: React.FC<{ appointments: UserAppointment[] }> = ({ appointments }) => {
-  const uniqueIssues = Array.from(new Set(appointments.map(a => a.specialization).filter(Boolean)));
+  const uniqueIssues = Array.from(new Set(appointments.map(a => {
+    if (a.specialization) return a.specialization;
+    // Fallback for older appointments: infer from MOCK_DOCTORS
+    const doc = MOCK_DOCTORS.find(d => d.name === a.doctorName);
+    return doc ? doc.specialization : null;
+  }).filter(Boolean)));
 
   return (
     <div className="records-detail">
