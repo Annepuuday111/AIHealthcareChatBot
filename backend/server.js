@@ -139,7 +139,7 @@ app.post('/api/prescriptions', async (req, res) => {
 // 6. Chatbot
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, scenario, history } = req.body;
+    const { message, scenario, userData } = req.body;
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
@@ -147,17 +147,21 @@ app.post('/api/chat', async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-    const systemInstruction = `You are AIHealthBot, a friendly and professional AI Healthcare Assistant built for the AIHealthChatBot platform.
+    const systemInstruction = `You are AIHealthBot, a friendly and professional AI Healthcare Assistant.
+
+Your context:
+- Current User: ${userData?.profile?.name || 'Unknown'} (${userData?.profile?.role || 'Guest'})
+- Medical History/Records: ${JSON.stringify(userData?.appointments || [])}
+- Active Prescriptions: ${JSON.stringify(userData?.prescriptions || [])}
 
 Your role:
-- Greet users warmly when they say hi, hello, hey, or any greeting.
-- Answer every healthcare-related question clearly, professionally, and empathetically.
-- When the user is in a specific view/scenario, tailor your response to that context.
-- Always be helpful, concise, and easy to understand.
-- If asked about symptoms or if the user mentions an unhealthy issue/condition, provide a preliminary assessment.
-- **CRITICAL RULE**: If the user describes any symptom, illness, or health issue that requires or would benefit from a doctor's attention, you MUST append the exact string "[NEEDS_APPOINTMENT]" at the very end of your response.
-- General questions outside healthcare, still be helpful but gently guide back to healthcare topics.
-- Never refuse to answer a question. Always provide a helpful, thoughtful response.`;
+- Greet users warmly.
+- Use the user's data ONLY if they ask about their records, history, medications, or appointments.
+- If they ask "summarize my records" or "tell me about my history", provide a concise bulleted summary of their appointments and findings.
+- If they ask about medications, list their prescriptions and tell them how to take them.
+- If they mention an unhealthy issue, provide assessment and append [NEEDS_APPOINTMENT] if serious.
+- Answer every healthcare question clearly and empathetically.
+- Never refuse to answer.`;
 
     const modelsToTry = [
       'gemini-3-flash',
@@ -167,7 +171,7 @@ Your role:
       'gemini-flash-latest',
     ];
 
-    const prompt = `User is in "${scenario}" view.\n\nUser message: ${message}`;
+    const prompt = `User in "${scenario}" view asks: ${message}`;
 
     let lastError = null;
     for (const modelName of modelsToTry) {

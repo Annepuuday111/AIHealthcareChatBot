@@ -381,9 +381,11 @@ const Chat: React.FC<{
   scenario: Scenario,
   setScenario: (s: Scenario) => void,
   addAppointment: (app: UserAppointment) => void,
-  currentUser: UserAccount | null
+  currentUser: UserAccount | null,
+  appointments: UserAppointment[],
+  prescriptions: Prescription[]
 }> = ({
-  scenario, setScenario, addAppointment, currentUser
+  scenario, setScenario, addAppointment, currentUser, appointments, prescriptions
 }) => {
   const WELCOME: Message = {
     id: 'welcome',
@@ -471,7 +473,15 @@ const Chat: React.FC<{
       const response = await fetch('http://localhost:5001/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text.trim(), scenario }),
+        body: JSON.stringify({ 
+          message: text.trim(), 
+          scenario,
+          userData: {
+            profile: currentUser,
+            appointments: appointments.filter(a => a.patientName === currentUser?.name || a.doctorName === currentUser?.name),
+            prescriptions: prescriptions.filter(p => p.patientName === currentUser?.name)
+          }
+        }),
       });
       const data = await response.json();
       const reply = data.reply || "I'm sorry, I couldn't understand that.";
@@ -1341,6 +1351,8 @@ export default function App() {
               setScenario={setScenario} 
               addAppointment={addAppointment} 
               currentUser={currentUser}
+              appointments={appointments}
+              prescriptions={prescriptions}
             />
           )}
         </main>
