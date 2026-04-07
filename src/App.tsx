@@ -502,7 +502,7 @@ const Chat: React.FC<{
       <div className="messages-scroll">
         {messages.map(msg => (
           <div key={msg.id} className={`msg-row ${msg.role}`}>
-            <div className="msg-avatar">{msg.role === 'bot' ? '🤖' : '👤'}</div>
+            <div className="msg-avatar">{msg.role === 'bot' ? '🩺' : '👤'}</div>
             <div className="msg-content">
               <div className={`msg-bubble ${msg.role}`}>
                 <FormattedText text={msg.text} />
@@ -570,7 +570,7 @@ const Chat: React.FC<{
         ))}
         {loading && (
           <div className="msg-row bot">
-            <div className="msg-avatar">🤖</div>
+            <div className="msg-avatar">🩺</div>
             <div className="msg-bubble bot">
               <div className="typing-dots"><span /><span /><span /></div>
             </div>
@@ -693,7 +693,7 @@ const LoginPage: React.FC<{ onLogin: (role: 'patient' | 'doctor') => void }> = (
         {/* Left Side: Role Selector */}
         <div className="login-left">
           <div className="login-hero">
-            <div className="logo-pulse">🤖</div>
+            <div className="logo-pulse">⚕️</div>
             <h1>MediSync AI</h1>
             <p>Premium Healthcare Ecosystem</p>
           </div>
