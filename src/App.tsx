@@ -1259,7 +1259,7 @@ export default function App() {
 
   const filteredNavItems = NAV_ITEMS.filter(item => {
     if (view === 'patient') {
-      return item.id !== 'dashboard' && item.id !== 'symptoms';
+      return item.id !== 'dashboard' && item.id !== 'symptoms' && item.id !== 'appointments';
     }
     if (view === 'doctor') {
       return item.id === 'appointments' || item.id === 'records' || item.id === 'dashboard';
