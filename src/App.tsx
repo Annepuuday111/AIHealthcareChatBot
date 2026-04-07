@@ -798,10 +798,10 @@ const Chat: React.FC<{
       <div className="input-bar">
         <button 
           className={`icon-btn menu-toggle ${showQuickMenu ? 'active' : ''}`} 
-          title="Quick Menu"
+          title="Clinical Modes"
           onClick={() => setShowQuickMenu(!showQuickMenu)}
         >
-          {showQuickMenu ? '✕' : '➕'}
+          {showQuickMenu ? '✕' : '☰'}
         </button>
 
         <input 
