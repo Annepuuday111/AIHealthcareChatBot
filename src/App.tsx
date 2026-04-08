@@ -2,6 +2,7 @@ import React, {
   useState, useEffect, useRef, useCallback
 } from 'react';
 import './App.css';
+import './admin.css';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -24,12 +25,14 @@ interface Prescription {
 }
 
 // ─── Types ────────────────────────────────────────────────
-type Scenario = 'none' | 'records' | 'symptoms' | 'appointments' | 'medication' | 'dashboard' | 'doctorView' | 'login' | 'health_queries' | 'notifications';
+type Scenario = 'none' | 'records' | 'symptoms' | 'appointments' | 'medication' | 'dashboard' | 'doctorView' | 'adminDashboard' | 'login' | 'health_queries' | 'notifications' | 'admin_doctors' | 'admin_patients' | 'admin_specializations';
 
 interface UserAccount {
+  _id?: string;
   name: string;
   email: string;
-  role: 'patient' | 'doctor';
+  role: 'patient' | 'doctor' | 'admin';
+  specialization?: string;
 }
 
 interface Doctor {
@@ -244,7 +247,8 @@ function analyzeText(text: string, scenario: Scenario, isMedia: boolean = false)
 function getBotResponse(
   text: string,
   scenario: Scenario,
-  fileContent?: string
+  fileContent?: string,
+  dynamicSpecializations: string[] = SPECIALIZATIONS
 ): { reply: string; chart?: ChartData; interactive?: any } {
   const isMedia = !!fileContent;
   const combined = fileContent ? `${text} ${fileContent}` : text;
@@ -263,7 +267,7 @@ function getBotResponse(
   if (raw === '__SPECIALIZATIONS__') {
     return {
       reply: `📅 **Book an Appointment**\n\nPlease select a medical specialization to see available doctors:`,
-      interactive: { type: 'specializations', data: SPECIALIZATIONS }
+      interactive: { type: 'specializations', data: dynamicSpecializations }
     };
   }
 
@@ -495,9 +499,11 @@ const Chat: React.FC<{
   currentUser: UserAccount | null,
   appointments: UserAppointment[],
   prescriptions: Prescription[],
+  allDoctors: Doctor[],
+  specializations: string[],
   addToast: (msg: string, type?: Toast['type'], icon?: string) => void
 }> = ({
-  scenario, setScenario, addAppointment, currentUser, appointments, prescriptions, addToast
+  scenario, setScenario, addAppointment, currentUser, appointments, prescriptions, allDoctors, specializations, addToast
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -545,7 +551,7 @@ const Chat: React.FC<{
       
     if (isMockFeature) {
       await new Promise(r => setTimeout(r, 600));
-      const { reply, chart, interactive } = getBotResponse(text || fileName || '', scenario, fileContent);
+      const { reply, chart, interactive } = getBotResponse(text || fileName || '', scenario, fileContent, specializations);
       setLoading(false);
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'bot', text: reply, chart, interactive }]);
       
@@ -600,7 +606,7 @@ const Chat: React.FC<{
       
       let interactive = undefined;
       if (data.needsAppointment) {
-        interactive = { type: 'specializations', data: SPECIALIZATIONS };
+        interactive = { type: 'specializations', data: specializations };
         addToast("Health issue detected. Recommended: Book Consultaion", "warning", "🩺");
       }
       
@@ -622,7 +628,7 @@ const Chat: React.FC<{
   const handleInteractiveClick = (type: string, value: any) => {
     if (type === 'specializations') {
       setSelectedSpecialization(value);
-      const doctors = MOCK_DOCTORS.filter(d => d.specialization === value);
+      const doctors = allDoctors.filter(d => d.specialization === value);
       const botMsg: Message = {
         id: Date.now().toString(),
         role: 'bot',
@@ -675,7 +681,7 @@ const Chat: React.FC<{
         id: Date.now().toString(),
         role: 'bot',
         text: `📅 **Appointment Scheduling Initialized**\n\nPlease select a medical specialization to find available doctors:`,
-        interactive: { type: 'specializations', data: SPECIALIZATIONS }
+        interactive: { type: 'specializations', data: specializations }
       };
       setMessages(prev => [...prev, botMsg]);
       return;
@@ -940,7 +946,6 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [selectedDocId, setSelectedDocId] = useState('');
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -961,11 +966,6 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
         setIsRegistering(false);
         setEmail(''); setPassword(''); setName('');
       } else {
-        if (selectedRole === 'doctor' && selectedDocId) {
-          const doc = MOCK_DOCTORS.find(d => d.id === selectedDocId);
-          if (doc) onLogin({ name: doc.name, email: `${doc.id}@medical.com`, role: 'doctor' });
-          return;
-        }
         const response = await axios.post(`${API_URL}/login`, { email, password, role: selectedRole });
         onLogin(response.data.user);
       }
@@ -1021,60 +1021,43 @@ const LoginPage: React.FC<{ onLogin: (user: UserAccount) => void }> = ({ onLogin
             </p>
 
             <form className={`auth-form ${!selectedRole ? 'form-locked' : ''}`} onSubmit={handleAuth}>
-              {selectedRole === 'doctor' ? (
+              <>
+                {isRegistering && selectedRole !== 'doctor' && (
+                  <div className="input-group">
+                    <label>Full Name</label>
+                    <input 
+                      placeholder="John Doe" 
+                      value={name} 
+                      onChange={e => setName(e.target.value)} 
+                      required 
+                      disabled={!selectedRole}
+                    />
+                  </div>
+                )}
                 <div className="input-group">
-                  <label>Select Authorized Doctor</label>
-                  <select 
-                    className="doctor-select"
-                    value={selectedDocId} 
-                    onChange={e => setSelectedDocId(e.target.value)}
-                    required
-                  >
-                    <option value="">Choose a Doctor...</option>
-                    {MOCK_DOCTORS.map(d => (
-                      <option key={d.id} value={d.id}>{d.avatar} {d.name} ({d.specialization})</option>
-                    ))}
-                  </select>
+                  <label>Email Address</label>
+                  <input 
+                    type="email" 
+                    placeholder="user@example.com" 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)} 
+                    required 
+                    disabled={!selectedRole}
+                  />
                 </div>
-              ) : (
-                <>
-                  {isRegistering && (
-                    <div className="input-group">
-                      <label>Full Name</label>
-                      <input 
-                        placeholder="John Doe" 
-                        value={name} 
-                        onChange={e => setName(e.target.value)} 
-                        required 
-                        disabled={!selectedRole}
-                      />
-                    </div>
-                  )}
-                  <div className="input-group">
-                    <label>Email Address</label>
-                    <input 
-                      type="email" 
-                      placeholder="user@example.com" 
-                      value={email} 
-                      onChange={e => setEmail(e.target.value)} 
-                      required 
-                      disabled={!selectedRole}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>Password</label>
-                    <input 
-                      type="password" 
-                      placeholder="••••••••" 
-                      value={password} 
-                      onChange={e => setPassword(e.target.value)} 
-                      required 
-                      disabled={!selectedRole}
-                    />
-                  </div>
-                </>
-              )}
-              <button type="submit" disabled={!selectedRole || (selectedRole === 'doctor' && !selectedDocId)} className="auth-submit-btn">
+                <div className="input-group">
+                  <label>Password</label>
+                  <input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={password} 
+                    onChange={e => setPassword(e.target.value)} 
+                    required 
+                    disabled={!selectedRole}
+                  />
+                </div>
+              </>
+              <button type="submit" disabled={!selectedRole} className="auth-submit-btn">
                 {selectedRole === 'doctor' ? 'Access Clinical Portal' : (isRegistering ? 'Register' : 'Login')}
               </button>
             </form>
@@ -1354,45 +1337,322 @@ const MedicationView: React.FC<{ prescriptions: Prescription[] }> = ({ prescript
 
 // ─── Doctor Home (Overall Dashboard) ──────────────────────
 const DoctorOverallDashboard: React.FC<{ 
-  appointments: UserAppointment[] 
-}> = ({ appointments }) => (
-  <div className="doctor-panel">
-    <div className="doc-header">
-      <h2>Clinical Overview</h2>
-      <p>Summary of your practice and patient activity.</p>
-    </div>
-    
-    <div className="patient-stats-grid">
-      <div className="stat-card">
-        <span>Total Patients</span>
-        <strong>{new Set(appointments.map(a => a.patientName)).size}</strong>
-      </div>
-      <div className="stat-card">
-        <span>Pending Requests</span>
-        <strong>{appointments.filter(a => a.status === 'pending').length}</strong>
-      </div>
-      <div className="stat-card">
-        <span>Completed Today</span>
-        <strong>{appointments.filter(a => a.status === 'completed').length}</strong>
-      </div>
-    </div>
+  appointments: UserAppointment[],
+  currentUser: UserAccount | null,
+  addToast: any
+}> = ({ appointments, currentUser, addToast }) => {
+  const [passData, setPassData] = useState({ currentPassword: '', newPassword: '' });
 
-    <div className="medical-history">
-      <h3>Quick Actions</h3>
-      <div className="app-list" style={{ marginTop: '1rem' }}>
-        <p style={{ color: '#64748B', fontSize: '0.9rem' }}>Recent system activity and doctor alerts will appear here.</p>
-        <div className="history-item" style={{ marginTop: '1rem' }}>
-           <span className="h-date">Alert</span>
-           <p>System update scheduled for maintenance tonight at 12:00 AM.</p>
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API_URL}/doctors/change-password`, {
+        email: currentUser?.email,
+        currentPassword: passData.currentPassword,
+        newPassword: passData.newPassword
+      });
+      addToast('Password updated successfully', 'success', '🔒');
+      setPassData({ currentPassword: '', newPassword: '' });
+    } catch (err: any) {
+      addToast(err.response?.data?.message || 'Failed to update password', 'error', '⚠️');
+    }
+  };
+
+  return (
+    <div className="doctor-panel">
+      <div className="doc-header">
+        <h2>Clinical Overview</h2>
+        <p>Summary of your practice and patient activity.</p>
+      </div>
+      
+      <div className="patient-stats-grid">
+        <div className="stat-card">
+          <span>Total Patients</span>
+          <strong>{new Set(appointments.map(a => a.patientName)).size}</strong>
+        </div>
+        <div className="stat-card">
+          <span>Pending Requests</span>
+          <strong>{appointments.filter(a => a.status === 'pending').length}</strong>
+        </div>
+        <div className="stat-card">
+          <span>Completed Today</span>
+          <strong>{appointments.filter(a => a.status === 'completed').length}</strong>
+        </div>
+      </div>
+
+      <div className="medical-history" style={{ marginTop: '2rem' }}>
+        <h3>Account & Security</h3>
+        <div className="app-list" style={{ marginTop: '1rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '12px' }}>
+          <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>🔐</span> Change Password</h4>
+          <form onSubmit={handleChangePassword} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <input 
+              type="password" 
+              className="login-input" 
+              placeholder="Current Password" 
+              required 
+              value={passData.currentPassword} 
+              onChange={e => setPassData({...passData, currentPassword: e.target.value})}
+              style={{ flex: 1, minWidth: '200px' }}
+            />
+            <input 
+              type="password" 
+              className="login-input" 
+              placeholder="New Password" 
+              required 
+              value={passData.newPassword} 
+              onChange={e => setPassData({...passData, newPassword: e.target.value})}
+              style={{ flex: 1, minWidth: '200px' }}
+            />
+            <button type="submit" className="action-btn-main" style={{ whiteSpace: 'nowrap' }}>Update Password</button>
+          </form>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
+
+// ─── Admin Dashboard ──────────────────────────────────────────
+const AdminDashboardView: React.FC<{ addToast: any, specializations: string[], refreshGlobal: () => void, scenario: Scenario }> = ({ addToast, specializations, refreshGlobal, scenario }) => {
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [newDoc, setNewDoc] = useState({ name: '', email: '', password: '', specialization: '' });
+  const [editingDoc, setEditingDoc] = useState<any>(null);
+  const [newSpec, setNewSpec] = useState('');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const dRes = await axios.get(`${API_URL}/admin/doctors`);
+      const pRes = await axios.get(`${API_URL}/admin/patients`);
+      setDoctors(dRes.data);
+      setPatients(pRes.data);
+    } catch(err) { console.error(err); }
+  };
+
+  const handleAddDoctor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API_URL}/admin/doctors`, newDoc);
+      addToast('Doctor added successfully', 'success', '👨‍⚕️');
+      setNewDoc({ name: '', email: '', password: '', specialization: '' });
+      fetchData();
+      refreshGlobal();
+    } catch(err: any) {
+      addToast(err.response?.data?.message || err.response?.data?.error || err.message || 'Error adding doctor', 'error');
+    }
+  };
+
+  const handleUpdateDoctor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await axios.put(`${API_URL}/admin/doctors/${editingDoc._id}`, editingDoc);
+      addToast('Doctor updated successfully', 'success', '👨‍⚕️');
+      setEditingDoc(null);
+      fetchData();
+      refreshGlobal();
+    } catch(err: any) {
+      addToast(err.response?.data?.message || err.response?.data?.error || err.message || 'Error updating doctor', 'error');
+    }
+  };
+
+  const handleRemoveDoctor = async (id: string) => {
+    if (!window.confirm("Are you sure you want to remove this doctor?")) return;
+    try {
+      await axios.delete(`${API_URL}/admin/doctors/${id}`);
+      addToast('Doctor removed', 'info');
+      fetchData();
+      refreshGlobal();
+    } catch(err: any) {
+       addToast('Error removing doctor', 'error');
+    }
+  };
+
+  return (
+    <div className="admin-dashboard-page">
+       {editingDoc && (
+         <div className="modal-overlay" style={{ zIndex: 1000 }}>
+           <form className="admin-edit-modal" onSubmit={handleUpdateDoctor}>
+             <div className="admin-edit-modal-header">
+               <h3>✏️ Edit Doctor</h3>
+               <button type="button" className="admin-modal-close" onClick={() => setEditingDoc(null)}>✕</button>
+             </div>
+             <div className="admin-form-group">
+               <label className="admin-form-label">Full Name</label>
+               <input className="admin-input" placeholder="Full Name" value={editingDoc.name} onChange={e=>setEditingDoc({...editingDoc, name: e.target.value})} required />
+             </div>
+             <div className="admin-form-group">
+               <label className="admin-form-label">Email Address</label>
+               <input className="admin-input" type="email" placeholder="Email" value={editingDoc.email} onChange={e=>setEditingDoc({...editingDoc, email: e.target.value})} required />
+             </div>
+             <div className="admin-form-group">
+               <label className="admin-form-label">New Password (optional)</label>
+               <input className="admin-input" type="password" placeholder="Leave blank to keep current" value={editingDoc.password || ''} onChange={e=>setEditingDoc({...editingDoc, password: e.target.value})} />
+             </div>
+             <div className="admin-form-group">
+               <label className="admin-form-label">Specialization</label>
+               <select className="admin-input admin-select" required value={editingDoc.specialization} onChange={e=>setEditingDoc({...editingDoc, specialization: e.target.value})}>
+                 <option value="">Select Specialization...</option>
+                 {specializations.map(s => <option key={s} value={s}>{s}</option>)}
+               </select>
+             </div>
+             <div className="admin-edit-modal-footer">
+               <button type="button" className="admin-cancel-btn" onClick={() => setEditingDoc(null)}>Cancel</button>
+               <button type="submit" className="admin-submit-btn">Update Doctor</button>
+             </div>
+           </form>
+         </div>
+       )}
+       <div className="admin-page-header">
+         <div className="admin-page-header-icon">
+           {scenario === 'admin_doctors' ? '👨‍⚕️' : scenario === 'admin_patients' ? '👥' : scenario === 'admin_specializations' ? '🔖' : '📊'}
+         </div>
+         <div>
+           <h2 className="admin-page-title">
+             {scenario === 'admin_doctors' ? 'Manage Doctors' :
+              scenario === 'admin_patients' ? 'Patient Registry' :
+              scenario === 'admin_specializations' ? 'Manage Specializations' : 'Admin Overview'}
+           </h2>
+           <p className="admin-page-sub">
+             {scenario === 'admin_doctors' ? 'Add, edit and revoke doctor accounts' :
+              scenario === 'admin_patients' ? 'View all registered patients' :
+              scenario === 'admin_specializations' ? 'Create and manage medical specializations' :
+              'System-wide statistics at a glance'}
+           </p>
+         </div>
+       </div>
+
+       {(scenario === 'adminDashboard' || scenario === 'none') && (
+         <div className="admin-stats-grid">
+           <div className="admin-stat-card admin-stat-blue">
+             <div className="admin-stat-icon">👨‍⚕️</div>
+             <div className="admin-stat-info">
+               <span className="admin-stat-label">Total Doctors</span>
+               <strong className="admin-stat-value">{doctors.length}</strong>
+             </div>
+           </div>
+           <div className="admin-stat-card admin-stat-green">
+             <div className="admin-stat-icon">👥</div>
+             <div className="admin-stat-info">
+               <span className="admin-stat-label">Total Patients</span>
+               <strong className="admin-stat-value">{patients.length}</strong>
+             </div>
+           </div>
+           <div className="admin-stat-card admin-stat-purple">
+             <div className="admin-stat-icon">🔖</div>
+             <div className="admin-stat-info">
+               <span className="admin-stat-label">Specializations</span>
+               <strong className="admin-stat-value">{specializations.length}</strong>
+             </div>
+           </div>
+         </div>
+       )}
+
+       {scenario !== 'adminDashboard' && scenario !== 'none' && (
+         <div style={{ display: 'grid', gridTemplateColumns: scenario === 'admin_doctors' ? '1fr 1fr' : '1fr', gap: '2rem', marginTop: '2rem' }}>
+           {scenario === 'admin_specializations' && (
+             <div className="admin-section-card">
+              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>🔖</span> Add Specialization</h3>
+              <form onSubmit={async (e) => {
+                 e.preventDefault();
+                 try {
+                   await axios.post(`${API_URL}/admin/specializations`, { name: newSpec });
+                   addToast('Specialization added', 'success', '🔖');
+                   setNewSpec('');
+                   refreshGlobal();
+                 } catch(err: any) {
+                   addToast(err.response?.data?.message || 'Error adding specialization', 'error');
+                 }
+              }} style={{ display: 'flex', flexDirection: 'row', gap: '1rem' }}>
+                 <input className="login-input" placeholder="E.g., Orthopaedist" required value={newSpec} onChange={e=>setNewSpec(e.target.value)} />
+                 <button type="submit" className="login-btn-main" style={{ width: 'auto' }}>Add</button>
+              </form>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem' }}>
+                 {specializations.map(s => (
+                   <span key={s} style={{ background: '#f1f5f9', padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                     {s} 
+                     <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.1rem' }} onClick={async () => {
+                       try {
+                         const sRes = await axios.get(`${API_URL}/specializations`);
+                         const found = sRes.data.find((spec:any) => spec.name === s);
+                         if (found) {
+                           await axios.delete(`${API_URL}/admin/specializations/${found._id}`);
+                           refreshGlobal();
+                         }
+                       } catch(err) {} 
+                     }}>&times;</button>
+                   </span>
+                 ))}
+              </div>
+           </div>
+           )}
+           
+           {scenario === 'admin_doctors' && (
+             <div className="admin-section-card">
+              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>➕</span> Add New Doctor</h3>
+              <form onSubmit={handleAddDoctor} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                 <input className="login-input" placeholder="Full Name" required value={newDoc.name} onChange={e=>setNewDoc({...newDoc, name: e.target.value})} />
+                 <input className="login-input" placeholder="Email Address" type="email" required value={newDoc.email} onChange={e=>setNewDoc({...newDoc, email: e.target.value})} />
+                 <input className="login-input" placeholder="Initial Password" required value={newDoc.password} onChange={e=>setNewDoc({...newDoc, password: e.target.value})} />
+                 <select className="login-input" required value={newDoc.specialization} onChange={e=>setNewDoc({...newDoc, specialization: e.target.value})} style={{ appearance: 'none', background: '#f8fafc' }}>
+                    <option value="">Select Specialization...</option>
+                    {specializations.map(s => <option key={s} value={s}>{s}</option>)}
+                 </select>
+                 <button type="submit" className="login-btn-main">Provision Doctor Account</button>
+              </form>
+           </div>
+           )}
+           
+           {scenario === 'admin_doctors' && (
+             <div className="admin-card" style={{ background: '#fff', padding: '2rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>📋</span> Doctor Directory ({doctors.length})</h3>
+              <div className="app-list" style={{ overflowY: 'auto', flex: 1, paddingRight: '0.5rem' }}>
+                 {doctors.map(d => (
+                   <div key={d._id} className="history-item" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px'}}>
+                     <div>
+                       <strong style={{ display: 'block', marginBottom: '0.2rem' }}>{d.name}</strong>
+                       <span style={{ fontSize: '0.85rem', color: '#64748B', display: 'block' }}>{d.specialization}</span>
+                       <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{d.email}</span>
+                     </div>
+                     <div style={{ display: 'flex', gap: '0.5rem' }}>
+                       <button className="action-btn-main" onClick={() => setEditingDoc(d)} style={{ padding: '0.5rem 1rem' }}>Edit</button>
+                       <button className="reject-btn" onClick={() => handleRemoveDoctor(d._id)} style={{ padding: '0.5rem 1rem' }}>Revoke</button>
+                     </div>
+                   </div>
+                 ))}
+              </div>
+           </div>
+           )}
+
+           {scenario === 'admin_patients' && (
+             <div className="admin-section-card">
+              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>👥</span> Registered Patients ({patients.length})</h3>
+              <div className="app-list" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem'}}>
+                 {patients.map(p => (
+                   <div key={p._id} className="app-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                     <div className="p-ava" style={{ width: '40px', height: '40px' }}>{p.name.charAt(0)}</div>
+                     <div>
+                       <strong style={{ display: 'block' }}>{p.name}</strong>
+                       <span style={{fontSize: '0.8rem', color: '#64748B'}}>{p.email}</span>
+                     </div>
+                   </div>
+                 ))}
+              </div>
+           </div>
+           )}
+       </div>
+       )}
+    </div>
+  );
+};
 
 // ─── Root App ─────────────────────────────────────────────
 export default function App() {
-  const [view, setView] = useState<'patient' | 'doctor'>('patient');
+
+  // View state: 'patient', 'doctor' or 'admin'
+  const [view, setView] = useState<'patient' | 'doctor' | 'admin'>('patient');
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [scenario, setScenario] = useState<Scenario>('login');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -1427,6 +1687,31 @@ export default function App() {
   }, []);
   const [appointments, setAppointments] = useState<UserAppointment[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [appSpecializations, setAppSpecializations] = useState<string[]>([]);
+  const [appDoctors, setAppDoctors] = useState<Doctor[]>([]);
+
+  const fetchGlobalData = async () => {
+    try {
+      const dRes = await axios.get(`${API_URL}/doctors`);
+      if (dRes.data) {
+        setAppDoctors(dRes.data.map((d: any) => ({
+          id: d._id,
+          name: d.name,
+          specialization: d.specialization,
+          avatar: d.avatar || '👨‍⚕️',
+          available: d.available
+        })));
+      }
+      const sRes = await axios.get(`${API_URL}/specializations`);
+      if (sRes.data) {
+        setAppSpecializations(sRes.data.map((s: any) => s.name));
+      }
+    } catch (err) {}
+  };
+
+  useEffect(() => {
+    fetchGlobalData();
+  }, []);
 
   // Database Persistence Logic
   useEffect(() => {
@@ -1563,8 +1848,12 @@ export default function App() {
     if (view === 'doctor') {
       return item.id === 'appointments' || item.id === 'records' || item.id === 'dashboard';
     }
+    if (view === 'admin') {
+      return false; // Admin uses a specific layout without standard nav items
+    }
     return true;
   });
+
 
   if (scenario === 'login') return (
     <LoginPage onLogin={(user) => { 
@@ -1606,19 +1895,37 @@ export default function App() {
               Dashboard
             </button>
           )}
-          {filteredNavItems.map(n => (
-            <button
-              key={n.id}
-              className={`nav-btn ${scenario === n.id ? 'active' : ''}`}
-              onClick={() => { 
-                setScenario(n.id); 
-                setSidebarOpen(false); 
-              }}
-            >
-              <span className="nav-icon">{n.icon}</span>
-              {getNavLabel(n.id)}
-            </button>
-          ))}
+          {view === 'admin' ? (
+            [
+              { id: 'adminDashboard' as Scenario, icon: '📊', label: 'Dashboard Overview' },
+              { id: 'admin_doctors' as Scenario, icon: '👨‍⚕️', label: 'Manage Doctors' },
+              { id: 'admin_patients' as Scenario, icon: '👥', label: 'View Patients' },
+              { id: 'admin_specializations' as Scenario, icon: '🔖', label: 'Specializations' },
+            ].map(n => (
+              <button
+                key={n.id}
+                className={`nav-btn ${scenario === n.id || (scenario === 'none' && n.id === 'adminDashboard') ? 'active' : ''}`}
+                onClick={() => { setScenario(n.id); setSidebarOpen(false); }}
+              >
+                <span className="nav-icon">{n.icon}</span>
+                {n.label}
+              </button>
+            ))
+          ) : (
+            filteredNavItems.map(n => (
+              <button
+                key={n.id}
+                className={`nav-btn ${scenario === n.id ? 'active' : ''}`}
+                onClick={() => { 
+                  setScenario(n.id); 
+                  setSidebarOpen(false); 
+                }}
+              >
+                <span className="nav-icon">{n.icon}</span>
+                {getNavLabel(n.id)}
+              </button>
+            ))
+          )}
         </nav>
         <div className="sidebar-footer">
           <button className="logout-action" onClick={() => { 
@@ -1638,19 +1945,20 @@ export default function App() {
         <header className="topbar">
           <button className="hamburger" onClick={() => setSidebarOpen(o => !o)}>☰</button>
           <div className="topbar-title">
-            {view === 'doctor' ? '👨‍⚕️ Doctor Treatment Portal' : `${NAV_ITEMS.find(n => n.id === scenario)?.icon || '💬'} ${activeLabel}`}
+            {view === 'admin' ? '🛡️ Administration Console' : view === 'doctor' ? '👨‍⚕️ Doctor Treatment Portal' : `${NAV_ITEMS.find(n => n.id === scenario)?.icon || '💬'} ${activeLabel}`}
           </div>
           <div className="topbar-right">
              <div className="user-pill">
               <span className="user-name">
-                {currentUser?.name || (view === 'doctor' ? 'Medical Professional' : 'Patient User')}
+                {currentUser?.name || (view === 'admin' ? 'Administrator' : view === 'doctor' ? 'Medical Professional' : 'Patient User')}
               </span>
               <div className="user-ava">
-                {currentUser?.name.charAt(0) || (view === 'doctor' ? 'D' : 'P')}
+                {currentUser?.name.charAt(0) || (view === 'admin' ? 'A' : view === 'doctor' ? 'D' : 'P')}
               </div>
             </div>
           </div>
         </header>
+
 
         <main className="content-scroll">
           {scenario === 'notifications' ? (
@@ -1678,9 +1986,14 @@ export default function App() {
                 )}
               </div>
             </div>
+          ) : (view as string) === 'admin' || ((view as string) === 'admin' && scenario === 'adminDashboard') ? (
+            <AdminDashboardView addToast={addToast} specializations={appSpecializations} refreshGlobal={fetchGlobalData} scenario={scenario === 'none' ? 'adminDashboard' : scenario} />
           ) : view === 'doctor' && scenario === 'none' ? (
+
             <DoctorOverallDashboard 
               appointments={appointments.filter(a => a.doctorName === currentUser?.name)} 
+              currentUser={currentUser}
+              addToast={addToast}
             />
           ) : view === 'doctor' && scenario === 'appointments' ? (
             <DoctorDashboard 
@@ -1720,6 +2033,8 @@ export default function App() {
               currentUser={currentUser}
               appointments={appointments}
               prescriptions={prescriptions}
+              allDoctors={appDoctors}
+              specializations={appSpecializations}
               addToast={addToast}
             />
           )}

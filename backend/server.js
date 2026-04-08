@@ -25,7 +25,10 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['patient', 'doctor'], default: 'patient' }
+  role: { type: String, enum: ['patient', 'doctor', 'admin'], default: 'patient' },
+  specialization: { type: String }, // For doctors
+  available: { type: Boolean, default: true }, // For doctors
+  avatar: { type: String, default: '👨‍⚕️' } // For doctors
 });
 
 const appointmentSchema = new mongoose.Schema({
@@ -63,6 +66,11 @@ const notificationSchema = new mongoose.Schema({
 });
 const Notification = mongoose.model('Notification', notificationSchema);
 
+const specializationSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true }
+});
+const Specialization = mongoose.model('Specialization', specializationSchema);
+
 // ─── API Routes ────────────────────────────────────────
 
 // 1. Register
@@ -76,7 +84,7 @@ app.post('/api/register', async (req, res) => {
     await newUser.save();
     res.status(201).json({ message: 'User registered successfully', user: { name, email, role } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -84,12 +92,135 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password, role } = req.body;
+
+    // Hardcoded Admin logic using 'doctor' role login form
+    if (role === 'doctor' && email === 'admin@medical.com' && password === 'admin123') {
+      return res.json({ message: 'Login successful', user: { name: 'Admin', email: 'admin@medical.com', role: 'admin' } });
+    }
+
     const user = await User.findOne({ email, password, role });
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-    res.json({ message: 'Login successful', user: { name: user.name, email: user.email, role: user.role } });
+    res.json({ message: 'Login successful', user: { _id: user._id, name: user.name, email: user.email, role: user.role, specialization: user.specialization } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+// 2.3 Specializations
+app.get('/api/specializations', async (req, res) => {
+  try {
+    const specs = await Specialization.find();
+    res.json(specs);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/admin/specializations', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ message: 'Specialization name is required' });
+    
+    // Case-insensitive check
+    const existing = await Specialization.findOne({ 
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
+    });
+    
+    if (existing) return res.status(400).json({ message: `"${name}" already exists` });
+    const spec = new Specialization({ name: name.trim() });
+    await spec.save();
+    res.status(201).json(spec);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+app.delete('/api/admin/specializations/:id', async (req, res) => {
+  try {
+    await Specialization.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Specialization removed' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 2.5 Admin APIs
+app.get('/api/admin/doctors', async (req, res) => {
+  try {
+    const doctors = await User.find({ role: 'doctor' }).select('-password');
+    res.json(doctors);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/admin/doctors', async (req, res) => {
+  try {
+    const { name, email, password, specialization, avatar } = req.body;
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: 'Email already in use' });
+
+    const doctor = new User({ name, email, password, role: 'doctor', specialization, avatar: avatar || '👨‍⚕️', available: true });
+    await doctor.save();
+    res.status(201).json(doctor);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.put('/api/admin/doctors/:id', async (req, res) => {
+  try {
+    const { name, email, password, specialization, available, avatar } = req.body;
+    const updateData = { name, email, specialization, available, avatar };
+    if (password) updateData.password = password;
+
+    const doctor = await User.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    res.json(doctor);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.delete('/api/admin/doctors/:id', async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Doctor removed' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/admin/patients', async (req, res) => {
+  try {
+    const patients = await User.find({ role: 'patient' }).select('-password');
+    res.json(patients);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Doctor change password API
+app.post('/api/doctors/change-password', async (req, res) => {
+  try {
+    const { email, currentPassword, newPassword } = req.body;
+    const user = await User.findOne({ email, password: currentPassword, role: 'doctor' });
+    if (!user) return res.status(400).json({ message: 'Invalid current password' });
+    
+    user.password = newPassword;
+    await user.save();
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/doctors', async (req, res) => {
+  try {
+    const doctors = await User.find({ role: 'doctor' }).select('-password');
+    res.json(doctors);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -100,7 +231,7 @@ app.post('/api/appointments', async (req, res) => {
     await appointment.save();
     res.status(201).json(appointment);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -111,7 +242,7 @@ app.patch('/api/appointments/:id', async (req, res) => {
     const appt = await Appointment.findByIdAndUpdate(id, { status }, { new: true });
     res.json(appt);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -133,7 +264,7 @@ app.get('/api/appointments/:email', async (req, res) => {
     const appointments = await Appointment.find(query).sort({ date: -1 });
     res.json(appointments);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -143,7 +274,7 @@ app.get('/api/prescriptions/:email', async (req, res) => {
     const prescriptions = await Prescription.find({ patientEmail: req.params.email });
     res.json(prescriptions);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -153,7 +284,7 @@ app.post('/api/prescriptions', async (req, res) => {
     await p.save();
     res.status(201).json(p);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -163,7 +294,7 @@ app.get('/api/notifications/:email', async (req, res) => {
     const notifications = await Notification.find({ patientEmail: req.params.email }).sort({ date: -1 }).limit(30);
     res.json(notifications);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -173,7 +304,7 @@ app.post('/api/notifications', async (req, res) => {
     await n.save();
     res.status(201).json(n);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -240,7 +371,7 @@ Your role:
     res.status(500).json({ error: lastError?.message || 'All models failed.' });
   } catch (err) {
     console.error('Gemini API Error:', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -356,7 +487,7 @@ Use clear formatting with headers and bullet points. Be professional, empathetic
     res.status(500).json({ error: lastError?.message || 'Analysis failed.' });
   } catch (err) {
     console.error('Analyze Report Error:', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
