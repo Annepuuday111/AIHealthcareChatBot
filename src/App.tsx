@@ -1364,7 +1364,7 @@ const DoctorOverallDashboard: React.FC<{
         <h2>Clinical Overview</h2>
         <p>Summary of your practice and patient activity.</p>
       </div>
-      
+
       <div className="patient-stats-grid">
         <div className="stat-card">
           <span>Total Patients</span>
@@ -1385,21 +1385,21 @@ const DoctorOverallDashboard: React.FC<{
         <div className="app-list" style={{ marginTop: '1rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '12px' }}>
           <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>🔐</span> Change Password</h4>
           <form onSubmit={handleChangePassword} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <input 
-              type="password" 
-              className="login-input" 
-              placeholder="Current Password" 
-              required 
-              value={passData.currentPassword} 
+            <input
+              type="password"
+              className="login-input"
+              placeholder="Current Password"
+              required
+              value={passData.currentPassword}
               onChange={e => setPassData({...passData, currentPassword: e.target.value})}
               style={{ flex: 1, minWidth: '200px' }}
             />
-            <input 
-              type="password" 
-              className="login-input" 
-              placeholder="New Password" 
-              required 
-              value={passData.newPassword} 
+            <input
+              type="password"
+              className="login-input"
+              placeholder="New Password"
+              required
+              value={passData.newPassword}
               onChange={e => setPassData({...passData, newPassword: e.target.value})}
               style={{ flex: 1, minWidth: '200px' }}
             />
@@ -1476,7 +1476,7 @@ const AdminDashboardView: React.FC<{ addToast: any, specializations: string[], r
          <div className="modal-overlay" style={{ zIndex: 1000 }}>
            <form className="admin-edit-modal" onSubmit={handleUpdateDoctor}>
              <div className="admin-edit-modal-header">
-               <h3>✏️ Edit Doctor</h3>
+               <h3>✏️ Edit Doctor Profile</h3>
                <button type="button" className="admin-modal-close" onClick={() => setEditingDoc(null)}>✕</button>
              </div>
              <div className="admin-form-group">
@@ -1488,7 +1488,7 @@ const AdminDashboardView: React.FC<{ addToast: any, specializations: string[], r
                <input className="admin-input" type="email" placeholder="Email" value={editingDoc.email} onChange={e=>setEditingDoc({...editingDoc, email: e.target.value})} required />
              </div>
              <div className="admin-form-group">
-               <label className="admin-form-label">New Password (optional)</label>
+               <label className="admin-form-label">Update Password (optional)</label>
                <input className="admin-input" type="password" placeholder="Leave blank to keep current" value={editingDoc.password || ''} onChange={e=>setEditingDoc({...editingDoc, password: e.target.value})} />
              </div>
              <div className="admin-form-group">
@@ -1500,26 +1500,27 @@ const AdminDashboardView: React.FC<{ addToast: any, specializations: string[], r
              </div>
              <div className="admin-edit-modal-footer">
                <button type="button" className="admin-cancel-btn" onClick={() => setEditingDoc(null)}>Cancel</button>
-               <button type="submit" className="admin-submit-btn">Update Doctor</button>
+               <button type="submit" className="admin-submit-btn">Update Profile</button>
              </div>
            </form>
          </div>
        )}
+
        <div className="admin-page-header">
          <div className="admin-page-header-icon">
            {scenario === 'admin_doctors' ? '👨‍⚕️' : scenario === 'admin_patients' ? '👥' : scenario === 'admin_specializations' ? '🔖' : '📊'}
          </div>
          <div>
            <h2 className="admin-page-title">
-             {scenario === 'admin_doctors' ? 'Manage Doctors' :
+             {scenario === 'admin_doctors' ? 'Doctor Management' :
               scenario === 'admin_patients' ? 'Patient Registry' :
-              scenario === 'admin_specializations' ? 'Manage Specializations' : 'Admin Overview'}
+              scenario === 'admin_specializations' ? 'Specializations' : 'Admin Overview'}
            </h2>
            <p className="admin-page-sub">
-             {scenario === 'admin_doctors' ? 'Add, edit and revoke doctor accounts' :
-              scenario === 'admin_patients' ? 'View all registered patients' :
-              scenario === 'admin_specializations' ? 'Create and manage medical specializations' :
-              'System-wide statistics at a glance'}
+             {scenario === 'admin_doctors' ? 'Add, edit and monitor healthcare provider accounts' :
+              scenario === 'admin_patients' ? 'Comprehensive list of all registered patients' :
+              scenario === 'admin_specializations' ? 'Define and organize medical departments' :
+              'System-wide metrics and real-time statistics'}
            </p>
          </div>
        </div>
@@ -1529,21 +1530,21 @@ const AdminDashboardView: React.FC<{ addToast: any, specializations: string[], r
            <div className="admin-stat-card admin-stat-blue">
              <div className="admin-stat-icon">👨‍⚕️</div>
              <div className="admin-stat-info">
-               <span className="admin-stat-label">Total Doctors</span>
+               <span className="admin-stat-label">Doctors</span>
                <strong className="admin-stat-value">{doctors.length}</strong>
              </div>
            </div>
            <div className="admin-stat-card admin-stat-green">
              <div className="admin-stat-icon">👥</div>
              <div className="admin-stat-info">
-               <span className="admin-stat-label">Total Patients</span>
+               <span className="admin-stat-label">Patients</span>
                <strong className="admin-stat-value">{patients.length}</strong>
              </div>
            </div>
            <div className="admin-stat-card admin-stat-purple">
              <div className="admin-stat-icon">🔖</div>
              <div className="admin-stat-info">
-               <span className="admin-stat-label">Specializations</span>
+               <span className="admin-stat-label">Dept</span>
                <strong className="admin-stat-value">{specializations.length}</strong>
              </div>
            </div>
@@ -1551,96 +1552,155 @@ const AdminDashboardView: React.FC<{ addToast: any, specializations: string[], r
        )}
 
        {scenario !== 'adminDashboard' && scenario !== 'none' && (
-         <div style={{ display: 'grid', gridTemplateColumns: scenario === 'admin_doctors' ? '1fr 1fr' : '1fr', gap: '2rem', marginTop: '2rem' }}>
+         <div className={scenario === 'admin_doctors' ? 'admin-two-col-layout' : scenario === 'admin_specializations' ? 'admin-spec-layout' : ''}>
            {scenario === 'admin_specializations' && (
-             <div className="admin-section-card">
-              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>🔖</span> Add Specialization</h3>
-              <form onSubmit={async (e) => {
-                 e.preventDefault();
-                 try {
-                   await axios.post(`${API_URL}/admin/specializations`, { name: newSpec });
-                   addToast('Specialization added', 'success', '🔖');
-                   setNewSpec('');
-                   refreshGlobal();
-                 } catch(err: any) {
-                   addToast(err.response?.data?.message || 'Error adding specialization', 'error');
-                 }
-              }} style={{ display: 'flex', flexDirection: 'row', gap: '1rem' }}>
-                 <input className="login-input" placeholder="E.g., Orthopaedist" required value={newSpec} onChange={e=>setNewSpec(e.target.value)} />
-                 <button type="submit" className="login-btn-main" style={{ width: 'auto' }}>Add</button>
-              </form>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem' }}>
-                 {specializations.map(s => (
-                   <span key={s} style={{ background: '#f1f5f9', padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                     {s} 
-                     <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.1rem' }} onClick={async () => {
-                       try {
-                         const sRes = await axios.get(`${API_URL}/specializations`);
-                         const found = sRes.data.find((spec:any) => spec.name === s);
-                         if (found) {
-                           await axios.delete(`${API_URL}/admin/specializations/${found._id}`);
-                           refreshGlobal();
-                         }
-                       } catch(err) {} 
-                     }}>&times;</button>
-                   </span>
-                 ))}
-              </div>
-           </div>
+             <>
+               <div className="admin-section-card">
+                 <div className="admin-section-header">
+                   <div className="admin-section-icon">➕</div>
+                   <h3>Add Specialization</h3>
+                 </div>
+                 <form className="admin-form" onSubmit={async (e) => {
+                    e.preventDefault();
+                    try {
+                      await axios.post(`${API_URL}/admin/specializations`, { name: newSpec });
+                      addToast('Specialization added successfully', 'success', '🔖');
+                      setNewSpec('');
+                      fetchData();
+                      refreshGlobal();
+                    } catch(err: any) {
+                      addToast(err.response?.data?.message || 'Error adding specialization', 'error');
+                    }
+                 }}>
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Department Name</label>
+                      <input className="admin-input" placeholder="E.g., Orthopaedics" required value={newSpec} onChange={e=>setNewSpec(e.target.value)} />
+                    </div>
+                    <button type="submit" className="admin-submit-btn">Register Specialization</button>
+                 </form>
+               </div>
+
+               <div className="admin-section-card">
+                 <div className="admin-section-header">
+                   <div className="admin-section-icon">🔖</div>
+                   <h3>Active Specializations <span className="admin-count-badge">{specializations.length}</span></h3>
+                 </div>
+                 <div className="admin-spec-tags">
+                    {specializations.map(s => (
+                      <div key={s} className="admin-spec-tag">
+                        <span className="admin-spec-tag-name">{s}</span>
+                        <button className="admin-spec-tag-remove" title="Remove" onClick={async () => {
+                          if(!window.confirm(`Remove ${s} from specialization list?`)) return;
+                          try {
+                            const sRes = await axios.get(`${API_URL}/specializations`);
+                            const found = sRes.data.find((spec:any) => spec.name === s);
+                            if (found) {
+                              await axios.delete(`${API_URL}/admin/specializations/${found._id}`);
+                              refreshGlobal();
+                            }
+                          } catch(err) {} 
+                        }}>✕</button>
+                      </div>
+                    ))}
+                    {specializations.length === 0 && (
+                      <div className="admin-empty-state">
+                        <span>🔖</span>
+                        <p>No specializations defined yet.</p>
+                      </div>
+                    )}
+                 </div>
+               </div>
+             </>
            )}
            
            {scenario === 'admin_doctors' && (
-             <div className="admin-section-card">
-              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>➕</span> Add New Doctor</h3>
-              <form onSubmit={handleAddDoctor} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                 <input className="login-input" placeholder="Full Name" required value={newDoc.name} onChange={e=>setNewDoc({...newDoc, name: e.target.value})} />
-                 <input className="login-input" placeholder="Email Address" type="email" required value={newDoc.email} onChange={e=>setNewDoc({...newDoc, email: e.target.value})} />
-                 <input className="login-input" placeholder="Initial Password" required value={newDoc.password} onChange={e=>setNewDoc({...newDoc, password: e.target.value})} />
-                 <select className="login-input" required value={newDoc.specialization} onChange={e=>setNewDoc({...newDoc, specialization: e.target.value})} style={{ appearance: 'none', background: '#f8fafc' }}>
-                    <option value="">Select Specialization...</option>
-                    {specializations.map(s => <option key={s} value={s}>{s}</option>)}
-                 </select>
-                 <button type="submit" className="login-btn-main">Provision Doctor Account</button>
-              </form>
-           </div>
-           )}
-           
-           {scenario === 'admin_doctors' && (
-             <div className="admin-card" style={{ background: '#fff', padding: '2rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>📋</span> Doctor Directory ({doctors.length})</h3>
-              <div className="app-list" style={{ overflowY: 'auto', flex: 1, paddingRight: '0.5rem' }}>
-                 {doctors.map(d => (
-                   <div key={d._id} className="history-item" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px'}}>
-                     <div>
-                       <strong style={{ display: 'block', marginBottom: '0.2rem' }}>{d.name}</strong>
-                       <span style={{ fontSize: '0.85rem', color: '#64748B', display: 'block' }}>{d.specialization}</span>
-                       <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{d.email}</span>
-                     </div>
-                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                       <button className="action-btn-main" onClick={() => setEditingDoc(d)} style={{ padding: '0.5rem 1rem' }}>Edit</button>
-                       <button className="reject-btn" onClick={() => handleRemoveDoctor(d._id)} style={{ padding: '0.5rem 1rem' }}>Revoke</button>
-                     </div>
-                   </div>
-                 ))}
-              </div>
-           </div>
+             <>
+               <div className="admin-section-card">
+                 <div className="admin-section-header">
+                   <div className="admin-section-icon">➕</div>
+                   <h3>Add New Doctor</h3>
+                 </div>
+                 <form className="admin-form" onSubmit={handleAddDoctor}>
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Full Name</label>
+                      <input className="admin-input" placeholder="Dr. Jane Smith" required value={newDoc.name} onChange={e=>setNewDoc({...newDoc, name: e.target.value})} />
+                    </div>
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Email Address</label>
+                      <input className="admin-input" placeholder="doctor.name@hospital.com" type="email" required value={newDoc.email} onChange={e=>setNewDoc({...newDoc, email: e.target.value})} />
+                    </div>
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Secure Password</label>
+                      <input className="admin-input" placeholder="••••••••" type="password" required value={newDoc.password} onChange={e=>setNewDoc({...newDoc, password: e.target.value})} />
+                    </div>
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Specialization</label>
+                      <select className="admin-input admin-select" required value={newDoc.specialization} onChange={e=>setNewDoc({...newDoc, specialization: e.target.value})}>
+                         <option value="">Choose department...</option>
+                         {specializations.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <button type="submit" className="admin-submit-btn">Provision Account</button>
+                 </form>
+               </div>
+               
+               <div className="admin-section-card">
+                 <div className="admin-section-header">
+                   <div className="admin-section-icon">📋</div>
+                   <h3>Doctor Directory <span className="admin-count-badge">{doctors.length}</span></h3>
+                 </div>
+                 <div className="admin-doctor-list">
+                    {doctors.map(d => (
+                      <div key={d._id} className="admin-doctor-item">
+                        <div className="admin-doctor-avatar">
+                          {d.name.split(' ').map((n:string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </div>
+                        <div className="admin-doctor-info">
+                          <strong>{d.name}</strong>
+                          <span className="admin-doctor-spec">{d.specialization}</span>
+                          <span className="admin-doctor-email">{d.email}</span>
+                        </div>
+                        <div className="admin-doctor-actions">
+                          <button className="admin-edit-btn" onClick={() => setEditingDoc(d)}>Edit</button>
+                          <button className="admin-revoke-btn" onClick={() => handleRemoveDoctor(d._id)}>Revoke</button>
+                        </div>
+                      </div>
+                    ))}
+                    {doctors.length === 0 && (
+                      <div className="admin-empty-state">
+                        <span>👨‍⚕️</span>
+                        <p>No healthcare providers registered.</p>
+                      </div>
+                    )}
+                 </div>
+               </div>
+             </>
            )}
 
            {scenario === 'admin_patients' && (
              <div className="admin-section-card">
-              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span>👥</span> Registered Patients ({patients.length})</h3>
-              <div className="app-list" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem'}}>
-                 {patients.map(p => (
-                   <div key={p._id} className="app-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                     <div className="p-ava" style={{ width: '40px', height: '40px' }}>{p.name.charAt(0)}</div>
-                     <div>
-                       <strong style={{ display: 'block' }}>{p.name}</strong>
-                       <span style={{fontSize: '0.8rem', color: '#64748B'}}>{p.email}</span>
-                     </div>
-                   </div>
-                 ))}
-              </div>
-           </div>
+               <div className="admin-section-header">
+                 <div className="admin-section-icon">👥</div>
+                 <h3>Registered Patients <span className="admin-count-badge">{patients.length}</span></h3>
+               </div>
+               <div className="admin-patient-grid">
+                  {patients.map(p => (
+                    <div key={p._id} className="admin-patient-card">
+                      <div className="admin-patient-avatar">{p.name.charAt(0)}</div>
+                      <div className="admin-patient-info">
+                        <strong>{p.name}</strong>
+                        <span>{p.email}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {patients.length === 0 && (
+                    <div className="admin-empty-state">
+                      <span>👥</span>
+                      <p>No patient records found.</p>
+                    </div>
+                  )}
+               </div>
+             </div>
            )}
        </div>
        )}
