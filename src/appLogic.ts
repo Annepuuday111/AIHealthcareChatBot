@@ -1,4 +1,5 @@
 import type { Message, InsightData } from './types';
+import { API_URL } from './config';
 
 // Mock data generator for insights
 const generateVitalsData = (): InsightData => ({
@@ -44,7 +45,7 @@ export const processUserMessage = async (content: string, scenario: string): Pro
   }
 
   try {
-    const response = await fetch('http://localhost:5001/api/chat', {
+    const response = await fetch(`${API_URL}/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -9,8 +9,7 @@ import {
 } from 'recharts';
 
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+import { API_URL } from './config';
 
 interface Prescription {
   id: string;
@@ -560,7 +559,7 @@ const Chat: React.FC<{
     // ── File upload → Gemini medical analysis ──────────────────────
     if (fileContent) {
       try {
-        const response = await fetch('http://localhost:5001/api/analyze-report', {
+        const response = await fetch(`${API_URL}/analyze-report`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileContent, fileName, scenario }),
@@ -575,7 +574,7 @@ const Chat: React.FC<{
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           role: 'bot',
-          text: "⚠️ **Connection Error**\n\nUnable to analyze the file. Please make sure the backend is running on port 5001."
+          text: "⚠️ **Connection Error**\n\nUnable to analyze the file. Please make sure the AI server is reachable."
         }]);
       }
       return;
@@ -583,7 +582,7 @@ const Chat: React.FC<{
 
     // ── Text messages → Gemini chat ────────────────────────────────
     try {
-      const response = await fetch('http://localhost:5001/api/chat', {
+      const response = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -613,7 +612,7 @@ const Chat: React.FC<{
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'bot',
-        text: "⚠️ **Connection Error**\n\nUnable to reach the AI server. Please make sure the backend is running on port 5001."
+        text: "⚠️ **Connection Error**\n\nUnable to reach the AI server. Please make sure the backend is running."
       }]);
     }
   }, [scenario]);
